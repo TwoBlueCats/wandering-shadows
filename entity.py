@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import math
 from typing import Optional, Type, TypeVar, TYPE_CHECKING, Union
 
 from render_order import RenderOrder
@@ -49,6 +50,12 @@ class Entity:
         # Move the entity by a given amount
         self.x += dx
         self.y += dy
+
+    def distance(self, x: int, y: int) -> float:
+        """
+        Return the distance between the current entity and the given (x, y) coordinate.
+        """
+        return math.hypot(x - self.x, y - self.y)
 
     @property
     def game_map(self) -> GameMap:
