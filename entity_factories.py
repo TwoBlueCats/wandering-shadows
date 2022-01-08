@@ -12,7 +12,7 @@ player = Actor(
     name="Player",
     ai_cls=BaseAI,
     equipment=Equipment(),
-    fighter=Fighter(hp=100, defense=1, power=2),
+    fighter=Fighter(hp=100, defense=1, power=2, mp=100),
     inventory=Inventory(capacity=26),
     level=Level(level_up_base=200),
 )
@@ -43,10 +43,22 @@ troll = Actor(
 # ----- Items -----
 
 health_potion = Item(
-    char="!",
+    char="&",
     color=(127, 0, 255),
     name="Health Potion",
     consumable=consumable.HealingConsumable(amount=40),
+)
+mana_potion = Item(
+    char="&",
+    color=(0, 0, 255),
+    name="Mana Potion",
+    consumable=consumable.ManaConsumable(amount=10),
+)
+healing_book = Item(
+    char="$",
+    color=(127, 0, 255),
+    name="Magic book: health",
+    consumable=consumable.Permanent(mp=20, name="healing", consumable=consumable.HealingConsumable(amount=40)),
 )
 lightning_scroll = Item(
     char="#",

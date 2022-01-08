@@ -27,5 +27,8 @@ hp_empty = (0x40, 0x10, 0x10)
 xp_empty = (127, 95, 63)
 xp_filled = (191, 95, 0)
 
+mp_filled = (0, 191, 255)
+mp_empty = (0, 0, 191)
+
 menu_title = (255, 255, 63)
 menu_text = white

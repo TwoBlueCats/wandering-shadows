@@ -54,6 +54,24 @@ class HealingConsumable(Consumable):
             raise Impossible(f"Your health is already full.")
 
 
+class ManaConsumable(Consumable):
+    def __init__(self, amount: int):
+        self.amount = amount
+
+    def activate(self, action: actions.ItemAction) -> None:
+        consumer = action.entity
+        amount_recovered = consumer.fighter.restore_mana(self.amount)
+
+        if amount_recovered > 0:
+            self.engine.message_log.add_message(
+                f"You consume the {self.parent.name}, and recover {amount_recovered} MP!",
+                color.mp_filled,
+            )
+            self.consume()
+        else:
+            raise Impossible(f"Your mana storage is already full.")
+
+
 class LightningDamageConsumable(Consumable):
     def __init__(self, damage: int, maximum_range: int):
         self.damage = damage
@@ -149,3 +167,41 @@ class ConfusionConsumable(Consumable):
             entity=target, previous_ai=target.ai, turns_remaining=self.number_of_turns,
         )
         self.consume()
+
+
+class Permanent(Consumable):
+    def __init__(self, mp: int, name: str, consumable: Consumable):
+        self.mp = mp
+        self.name = name
+        self.consumable = consumable
+
+        self.consumable.consume = self.consume
+        self._parent = None
+
+    @property
+    def parent(self):
+        return self._parent
+
+    @parent.setter
+    def parent(self, value: Item):
+        self._parent = value
+        self.consumable.parent = value
+
+    def consume(self) -> None:
+        pass
+
+    def get_action(self, consumer: Actor) -> Optional[ActionOrHandler]:
+        used = consumer.fighter.use_mana(self.mp)
+        if used == 0:
+            self.engine.message_log.add_message(
+                f"Not enough mana to use this book, you need {self.mp} MP",
+                color.mp_empty
+            )
+        self.engine.message_log.add_message(
+            f"You use {self.mp} MP and cast {self.name} spell",
+            color.mp_empty
+        )
+        return self.consumable.get_action(consumer)
+
+    def activate(self, action: actions.ItemAction) -> None:
+        self.consumable.activate(action)

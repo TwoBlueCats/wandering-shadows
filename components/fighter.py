@@ -13,9 +13,13 @@ if TYPE_CHECKING:
 class Fighter(BaseComponent):
     parent: Actor
 
-    def __init__(self, hp: int, defense: int, power: int):
+    def __init__(self, hp: int, defense: int, power: int, mp: int = 0):
         self.max_hp = hp
         self._hp = hp
+
+        self.max_mp = mp
+        self._mp = mp // 2
+
         self.base_defense = defense
         self.base_power = power
 
@@ -65,6 +69,21 @@ class Fighter(BaseComponent):
             result += f" (+{self.defense_bonus})"
         return result
 
+    @property
+    def mp(self) -> int:
+        return self._mp
+
+    def use_mana(self, value: int) -> int:
+        if self._mp >= value:
+            self._mp -= value
+            return value
+        return 0
+
+    def restore_mana(self, value: int) -> int:
+        before = self.mp
+        self._mp = max(0, min(before + value, self.max_mp))
+        return self.mp - before
+
     def die(self) -> None:
         if self.engine.player is self.parent:
             death_message = "You died!"
@@ -84,19 +103,9 @@ class Fighter(BaseComponent):
         self.engine.message_log.add_message(death_message, death_message_color)
 
     def heal(self, amount: int) -> int:
-        if self.hp == self.max_hp:
-            return 0
-
-        new_hp_value = self.hp + amount
-
-        if new_hp_value > self.max_hp:
-            new_hp_value = self.max_hp
-
-        amount_recovered = new_hp_value - self.hp
-
-        self.hp = new_hp_value
-
-        return amount_recovered
+        before = self.hp
+        self.hp += amount
+        return self.hp - before
 
     def take_damage(self, amount: int) -> None:
         self.hp -= amount
