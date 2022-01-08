@@ -18,7 +18,7 @@ class Fighter(BaseComponent):
         self._hp = hp
 
         self.max_mp = mp
-        self._mp = mp // 2
+        self._mp = mp
 
         self.base_defense = defense
         self.base_power = power

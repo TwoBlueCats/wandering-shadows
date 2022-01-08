@@ -55,28 +55,58 @@ mana_potion = Item(
     consumable=consumable.ManaConsumable(amount=10),
 )
 healing_book = Item(
-    char="$",
+    char="#",
     color=(127, 0, 255),
-    name="Magic book: health",
-    consumable=consumable.Permanent(mp=20, name="healing", consumable=consumable.HealingConsumable(amount=40)),
+    name="Magic book: Health",
+    consumable=consumable.MagicBook(mp=20, name="healing", consumable=consumable.HealingConsumable(amount=40)),
 )
 lightning_scroll = Item(
-    char="#",
+    char="~",
     color=(255, 255, 0),
     name="Lightning Scroll",
     consumable=consumable.LightningDamageConsumable(damage=30, maximum_range=5),
 )
 fireball_scroll = Item(
-    char="#",
+    char="~",
     color=(255, 0, 0),
     name="Fireball Scroll",
     consumable=consumable.FireballDamageConsumable(damage=15, radius=3),
 )
 confusion_scroll = Item(
-    char="#",
+    char="~",
     color=(207, 63, 255),
     name="Confusion Scroll",
     consumable=consumable.ConfusionConsumable(number_of_turns=10),
+)
+lightning_book = Item(
+    char="#",
+    color=(255, 255, 0),
+    name="Magic book: Lighting",
+    consumable=consumable.MagicBook(
+        mp=30,
+        name="lightning",
+        consumable=consumable.LightningDamageConsumable(damage=30, maximum_range=4),
+    ),
+)
+fireball_book = Item(
+    char="#",
+    color=(255, 0, 0),
+    name="Magic book: Fireball",
+    consumable=consumable.MagicBook(
+        mp=40,
+        name="fireball",
+        consumable=consumable.FireballDamageConsumable(damage=30, radius=3),
+    ),
+)
+confusion_book = Item(
+    char="#",
+    color=(207, 63, 255),
+    name="Magic book: Confusion",
+    consumable=consumable.MagicBook(
+        mp=20,
+        name="confusion",
+        consumable=consumable.ConfusionConsumable(number_of_turns=5),
+    ),
 )
 
 # ----- Equipment

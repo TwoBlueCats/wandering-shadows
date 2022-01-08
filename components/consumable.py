@@ -169,7 +169,7 @@ class ConfusionConsumable(Consumable):
         self.consume()
 
 
-class Permanent(Consumable):
+class MagicBook(Consumable):
     def __init__(self, mp: int, name: str, consumable: Consumable):
         self.mp = mp
         self.name = name
@@ -177,30 +177,31 @@ class Permanent(Consumable):
 
         self.consumable.consume = self.consume
         self._parent = None
+        self._consumer = None
 
     @property
     def parent(self):
         return self._parent
 
     @parent.setter
-    def parent(self, value: Item):
+    def parent(self, value: Item) -> None:
         self._parent = value
         self.consumable.parent = value
 
     def consume(self) -> None:
-        pass
+        self._consumer.fighter.use_mana(self.mp)
 
     def get_action(self, consumer: Actor) -> Optional[ActionOrHandler]:
-        used = consumer.fighter.use_mana(self.mp)
-        if used == 0:
+        if consumer.fighter.mp < self.mp:
             self.engine.message_log.add_message(
                 f"Not enough mana to use this book, you need {self.mp} MP",
-                color.mp_empty
+                color.mp_use
             )
         self.engine.message_log.add_message(
             f"You use {self.mp} MP and cast {self.name} spell",
-            color.mp_empty
+            color.mp_use
         )
+        self._consumer = consumer
         return self.consumable.get_action(consumer)
 
     def activate(self, action: actions.ItemAction) -> None:

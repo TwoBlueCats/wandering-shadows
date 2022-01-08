@@ -25,10 +25,30 @@ max_monsters_by_floor = [
 ]
 
 item_chances: dict[int, list[tuple[Entity, int]]] = {
-    0: [(entity_factories.health_potion, 35), (entity_factories.mana_potion, 1000)],
-    2: [(entity_factories.confusion_scroll, 10)],
-    4: [(entity_factories.lightning_scroll, 25), (entity_factories.sword, 15), (entity_factories.healing_book, 10)],
-    6: [(entity_factories.fireball_scroll, 25), (entity_factories.chain_mail, 15)],
+    0: [
+        (entity_factories.health_potion, 35),
+        (entity_factories.mana_potion, 10),
+        (entity_factories.healing_book, 1),
+    ],
+    2: [
+        (entity_factories.confusion_scroll, 10),
+        (entity_factories.healing_book, 10),
+    ],
+    4: [
+        (entity_factories.lightning_scroll, 25),
+        (entity_factories.sword, 15),
+        (entity_factories.healing_book, 20),
+        (entity_factories.confusion_book, 20),
+    ],
+    6: [
+        (entity_factories.mana_potion, 35),
+        (entity_factories.fireball_scroll, 25),
+        (entity_factories.chain_mail, 15),
+        (entity_factories.lightning_book, 10),
+    ],
+    8: [
+        (entity_factories.fireball_book, 10),
+    ]
 }
 
 enemy_chances: dict[int, list[tuple[Entity, int]]] = {
@@ -185,11 +205,11 @@ def generate_dungeon(
         if len(rooms) == 0:
             # The first room, where the player starts.
             player.place(*new_room.center, dungeon)
-            center_of_last_room = new_room.center
         else:  # All rooms after the first.
             # Dig out a tunnel between this room and the previous one.
             for x, y in tunnel_between(rooms[-1].center, new_room.center):
                 dungeon.tiles[x, y] = tile_types.floor
+            center_of_last_room = new_room.center
 
         place_entities(new_room, dungeon, engine.game_world.current_floor)
 

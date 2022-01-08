@@ -20,10 +20,10 @@ class Config:
     log_width = 40
     log_height = screen_height - data_location_y
 
-    overlay_width = 35
+    overlay_width = screen_width // 2
     overlay_left_x = 0
     overlay_right_x = screen_width // 2
-    overlay_border = 30
+    overlay_border = overlay_width - 1
 
     # --- level params
     room_max_size = 10

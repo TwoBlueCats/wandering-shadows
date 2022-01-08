@@ -5,8 +5,8 @@ from typing import Optional, TYPE_CHECKING, Callable, Union
 
 import tcod.event
 
-import config
 import render_utils
+import texts
 from actions import (
     Action,
     DirectedActionDispatcher,
@@ -57,7 +57,7 @@ MOVE_KEYS = {
 WAIT_KEYS = {
     tcod.event.K_PERIOD,
     tcod.event.K_KP_5,
-    tcod.event.K_CLEAR,
+    tcod.event.K_z,
 }
 
 CONFIRM_KEYS = {
@@ -199,7 +199,7 @@ class CharacterScreenEventHandler(AskUserEventHandler):
 
         x = render_utils.get_render_x_pos(self.engine)
         y = Config.data_top_y
-        width = len(self.TITLE) + 4
+        width = Config.overlay_width
 
         console.draw_frame(
             x=x,
@@ -232,6 +232,111 @@ class CharacterScreenEventHandler(AskUserEventHandler):
         )
 
 
+class ControlScreenEventHandler(AskUserEventHandler):
+    TITLE = "Controls"
+
+    def on_render(self, console: tcod.Console) -> None:
+        super().on_render(console)
+
+        x = Config.overlay_left_x
+        y = 0
+        width = Config.overlay_width
+        height = 10
+
+        console.draw_frame(
+            x=x,
+            y=y,
+            width=width,
+            height=height,
+            title="Movement",
+            clear=True,
+            fg=color.white,
+            bg=color.black,
+        )
+
+        for i, (k, t) in enumerate([(tcod.event.K_UP, "UP        or k"),
+                                    (tcod.event.K_DOWN, "DOWN      or j"),
+                                    (tcod.event.K_LEFT, "LEFT      or h"),
+                                    (tcod.event.K_RIGHT, "RIGHT     or l"),
+                                    (tcod.event.K_HOME, "HOME      or y"),
+                                    (tcod.event.K_END, "END       or b"),
+                                    (tcod.event.K_PAGEUP, "PAGE UP   or u"),
+                                    (tcod.event.K_PAGEDOWN, "PAGE DOWN or n"),
+                                    ]):
+            console.print(
+                x=x + 1, y=y + i + 1,
+                string=f"Key {t} moves {texts.MOVE_DIRECTIONS[MOVE_KEYS[k]]}"
+            )
+
+        y += height + 1
+        height = 3
+        console.draw_frame(
+            x=x,
+            y=y,
+            width=width,
+            height=height,
+            title="Wait",
+            clear=True,
+            fg=color.white,
+            bg=color.black,
+        )
+        console.print(
+            x=x + 1, y=y + 1,
+            string=f"Press key PERIOD or z for {texts.WAIT}"
+        )
+
+        y += height + 1
+        height = 3
+        console.draw_frame(
+            x=x,
+            y=y,
+            width=width,
+            height=height,
+            title="Confirm selection",
+            clear=True,
+            fg=color.white,
+            bg=color.black,
+        )
+        console.print(
+            x=x + 1, y=y + 1,
+            string=f"Press key ENTER for {texts.CONFIRM}"
+        )
+
+        x = Config.overlay_right_x
+        y = 0
+        height = 7
+        console.draw_frame(
+            x=x,
+            y=y,
+            width=width,
+            height=height,
+            title="Inventory",
+            clear=True,
+            fg=color.white,
+            bg=color.black,
+        )
+        console.print(x=x + 1, y=y + 1, string=f"Press key g to pick up item")
+        console.print(x=x + 1, y=y + 2, string=f"Press key i to use inventory items")
+        console.print(x=x + 1, y=y + 3, string=f"Press key d to drop inventory items")
+        console.print(x=x + 1, y=y + 4, string=f"Press key a-z to select inventory item")
+        console.print(x=x + 1, y=y + 5, string=f"Press any other key to exit")
+
+        y += height + 1
+        height = 4
+        console.draw_frame(
+            x=x,
+            y=y,
+            width=width,
+            height=height,
+            title="Other",
+            clear=True,
+            fg=color.white,
+            bg=color.black,
+        )
+        console.print(x=x + 1, y=y + 1, string=f"Press key c to show character screen")
+        console.print(x=x + 1, y=y + 2, string=f"Press key s to show this settings")
+
+
 class LevelUpEventHandler(AskUserEventHandler):
     TITLE = "Level Up"
 
@@ -245,7 +350,7 @@ class LevelUpEventHandler(AskUserEventHandler):
             x=x,
             y=y,
             width=Config.overlay_width,
-            height=8,
+            height=9,
             title=self.TITLE,
             clear=True,
             fg=(255, 255, 255),
@@ -262,7 +367,7 @@ class LevelUpEventHandler(AskUserEventHandler):
         )
         console.print(
             x=x + 1,
-            y=y + 4,
+            y=y + 5,
             string=f"b) Intelligence (+20 MP, from {self.engine.player.fighter.max_mp})",
         )
         console.print(
@@ -292,7 +397,6 @@ class LevelUpEventHandler(AskUserEventHandler):
                 player.level.increase_defense()
         else:
             self.engine.message_log.add_message("Invalid entry.", color.invalid)
-
             return None
 
         return super().ev_keydown(event)
@@ -329,7 +433,7 @@ class InventoryEventHandler(AskUserEventHandler):
 
         x = render_utils.get_render_x_pos(self.engine)
         y = 0
-        width = len(self.TITLE) + 4
+        width = Config.overlay_width
 
         console.draw_frame(
             x=x,
@@ -539,6 +643,8 @@ class MainGameEventHandler(EventHandler):
             return LookHandler(self.engine)
         elif key == tcod.event.K_c:
             return CharacterScreenEventHandler(self.engine)
+        elif key == tcod.event.K_s:
+            return ControlScreenEventHandler(self.engine)
         # No valid key was pressed
         return action
 
