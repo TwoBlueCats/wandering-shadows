@@ -5,6 +5,7 @@ from typing import Optional, TYPE_CHECKING, Callable, Union
 
 import tcod.event
 
+import config
 import render_utils
 from actions import (
     Action,
@@ -13,9 +14,11 @@ from actions import (
     PickupAction,
     DropItem,
     TakeStairsAction,
+    EquipAction,
 )
 import color
 import exceptions
+from config import Config
 
 if TYPE_CHECKING:
     from engine import Engine
@@ -195,7 +198,7 @@ class CharacterScreenEventHandler(AskUserEventHandler):
         super().on_render(console)
 
         x = render_utils.get_render_x_pos(self.engine)
-        y = 0
+        y = Config.data_top_y
         width = len(self.TITLE) + 4
 
         console.draw_frame(
@@ -222,10 +225,10 @@ class CharacterScreenEventHandler(AskUserEventHandler):
         )
 
         console.print(
-            x=x + 1, y=y + 4, string=f"Attack: {self.engine.player.fighter.power}"
+            x=x + 1, y=y + 4, string=f"Attack: {self.engine.player.fighter.power_str}"
         )
         console.print(
-            x=x + 1, y=y + 5, string=f"Defense: {self.engine.player.fighter.defense}"
+            x=x + 1, y=y + 5, string=f"Defense: {self.engine.player.fighter.defense_str}"
         )
 
 
@@ -236,11 +239,12 @@ class LevelUpEventHandler(AskUserEventHandler):
         super().on_render(console)
 
         x = render_utils.get_render_x_pos(self.engine)
+        y = Config.data_top_y
 
         console.draw_frame(
             x=x,
-            y=0,
-            width=35,
+            y=y,
+            width=Config.overlay_width,
             height=8,
             title=self.TITLE,
             clear=True,
@@ -248,23 +252,23 @@ class LevelUpEventHandler(AskUserEventHandler):
             bg=(0, 0, 0),
         )
 
-        console.print(x=x + 1, y=1, string="Congratulations! You level up!")
-        console.print(x=x + 1, y=2, string="Select an attribute to increase.")
+        console.print(x=x + 1, y=y + 1, string="Congratulations! You level up!")
+        console.print(x=x + 1, y=y + 2, string="Select an attribute to increase.")
 
         console.print(
             x=x + 1,
-            y=4,
+            y=y + 4,
             string=f"a) Constitution (+20 HP, from {self.engine.player.fighter.max_hp})",
         )
         console.print(
             x=x + 1,
-            y=5,
-            string=f"b) Strength (+1 attack, from {self.engine.player.fighter.power})",
+            y=y + 5,
+            string=f"b) Strength (+1 attack, from {self.engine.player.fighter.power_str})",
         )
         console.print(
             x=x + 1,
-            y=6,
-            string=f"c) Agility (+1 defense, from {self.engine.player.fighter.defense})",
+            y=y + 6,
+            string=f"c) Agility (+1 defense, from {self.engine.player.fighter.defense_str})",
         )
 
     def ev_keydown(self, event: tcod.event.KeyDown) -> Optional[ActionOrHandler]:
@@ -317,9 +321,7 @@ class InventoryEventHandler(AskUserEventHandler):
             height = 3
 
         x = render_utils.get_render_x_pos(self.engine)
-
         y = 0
-
         width = len(self.TITLE) + 4
 
         console.draw_frame(
@@ -336,7 +338,14 @@ class InventoryEventHandler(AskUserEventHandler):
         if number_of_items_in_inventory > 0:
             for i, item in enumerate(self.engine.player.inventory.items):
                 item_key = chr(ord("a") + i)
-                console.print(x + 1, y + i + 1, f"({item_key}) {item.name}")
+                is_equipped = self.engine.player.equipment.item_is_equipped(item)
+
+                item_string = f"({item_key}) {item.name}"
+
+                if is_equipped:
+                    item_string = f"{item_string} (E)"
+
+                console.print(x + 1, y + i + 1, item_string)
         else:
             console.print(x + 1, y + 1, "(Empty)")
 
@@ -366,7 +375,13 @@ class InventoryActivateHandler(InventoryEventHandler):
 
     def on_item_selected(self, item: Item) -> Optional[ActionOrHandler]:
         """Return the action for the selected item."""
-        return item.consumable.get_action(self.engine.player)
+        if item.consumable:
+            # Return the action for the selected item.
+            return item.consumable.get_action(self.engine.player)
+        elif item.equippable:
+            return EquipAction(self.engine.player, item)
+        else:
+            return None
 
 
 class InventoryDropHandler(InventoryEventHandler):
@@ -524,8 +539,8 @@ class MainGameEventHandler(EventHandler):
 class GameOverEventHandler(EventHandler):
     def on_quit(self) -> None:
         """Handle exiting out of a finished game."""
-        if os.path.exists("savegame.sav"):
-            os.remove("savegame.sav")  # Deletes the active save file.
+        if os.path.exists(Config.save_name):
+            os.remove(Config.save_name)  # Deletes the active save file.
         raise exceptions.QuitWithoutSaving()  # Avoid saving a finished game.
 
     def ev_quit(self, event: tcod.event.Quit) -> None:

@@ -3,6 +3,7 @@ import traceback
 import tcod
 
 import color
+from config import Config
 import exceptions
 import input_handlers
 import setup_game
@@ -16,9 +17,6 @@ def save_game(handler: input_handlers.BaseEventHandler, filename: str) -> None:
 
 
 def main() -> None:
-    screen_width = 80
-    screen_height = 50
-
     tile_set = tcod.tileset.load_tilesheet(
         "dejavu10x10_gs_tc.png", 32, 8, tcod.tileset.CHARMAP_TCOD
     )
@@ -26,13 +24,13 @@ def main() -> None:
     handler: input_handlers.BaseEventHandler = setup_game.MainMenu()
 
     with tcod.context.new_terminal(
-            screen_width,
-            screen_height,
+            Config.screen_width,
+            Config.screen_height,
             tileset=tile_set,
             title="Roguelike by Nightraven",
             vsync=True,
     ) as context:
-        root_console = tcod.Console(screen_width, screen_height, order="F")
+        root_console = tcod.Console(Config.screen_width, Config.screen_height, order="F")
         try:
             while True:
                 root_console.clear()
@@ -53,10 +51,10 @@ def main() -> None:
         except exceptions.QuitWithoutSaving:
             raise
         except SystemExit:  # Save and quit.
-            save_game(handler, "savegame.sav")
+            save_game(handler, Config.save_name)
             raise
         except BaseException:  # Save on any other unexpected exception.
-            save_game(handler, "savegame.sav")
+            save_game(handler, Config.save_name)
             raise
 
 

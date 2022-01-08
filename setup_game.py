@@ -10,26 +10,18 @@ from typing import Optional
 import tcod
 
 import color
+from config import Config
 from engine import Engine
 import entity_factories
 from game_map import GameWorld
 import input_handlers
 
 # Load the background image and remove the alpha channel.
-background_image = tcod.image.load("menu_background.png")[:, :, :3]
+background_image = tcod.image.load(Config.menu_bg_image)[:, :, :3]
 
 
 def new_game() -> Engine:
     """Return a brand new game session as an Engine instance."""
-    map_width = 80
-    map_height = 43
-
-    room_max_size = 10
-    room_min_size = 6
-    max_rooms = 30
-
-    max_monsters_per_room = 2
-    max_items_per_room = 2
 
     player = copy.deepcopy(entity_factories.player)
 
@@ -37,13 +29,11 @@ def new_game() -> Engine:
 
     engine.game_world = GameWorld(
         engine=engine,
-        max_rooms=max_rooms,
-        room_min_size=room_min_size,
-        room_max_size=room_max_size,
-        map_width=map_width,
-        map_height=map_height,
-        max_monsters_per_room=max_monsters_per_room,
-        max_items_per_room=max_items_per_room,
+        max_rooms=Config.max_rooms,
+        room_min_size=Config.room_min_size,
+        room_max_size=Config.room_max_size,
+        map_width=Config.map_width,
+        map_height=Config.map_height,
     )
     engine.game_world.generate_floor()
     engine.update_fov()
@@ -51,6 +41,19 @@ def new_game() -> Engine:
     engine.message_log.add_message(
         "Hello and welcome, adventurer, to yet another dungeon!", color.welcome_text
     )
+
+    dagger = copy.deepcopy(entity_factories.dagger)
+    leather_armor = copy.deepcopy(entity_factories.leather_armor)
+
+    dagger.parent = player.inventory
+    leather_armor.parent = player.inventory
+
+    player.inventory.items.append(dagger)
+    player.equipment.toggle_equip(dagger, add_message=False)
+
+    player.inventory.items.append(leather_armor)
+    player.equipment.toggle_equip(leather_armor, add_message=False)
+
     return engine
 
 

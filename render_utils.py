@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import color
+from config import Config
 
 if TYPE_CHECKING:
     from tcod import Console
@@ -24,20 +25,21 @@ def get_names_at_location(x: int, y: int, game_map: GameMap) -> str:
 def render_bar(
         console: Console,
         current_value: int, maximum_value: int,
-        total_width: int,
+        bg: tuple[int, int, int], fg: tuple[int, int, int],
+        x: int, y: int, total_width: int,
         text: str,
 ) -> None:
     bar_width = int(float(current_value) / maximum_value * total_width)
 
-    console.draw_rect(x=0, y=45, width=20, height=1, ch=1, bg=color.bar_empty)
+    console.draw_rect(x=x, y=y, width=total_width, height=1, ch=1, bg=bg)
 
     if bar_width > 0:
         console.draw_rect(
-            x=0, y=45, width=bar_width, height=1, ch=1, bg=color.bar_filled
+            x=x, y=y, width=bar_width, height=1, ch=1, bg=fg
         )
 
     console.print(
-        x=1, y=45, string=text, fg=color.bar_text
+        x=x + 1, y=y, string=text, fg=color.bar_text
     )
 
 
@@ -47,9 +49,7 @@ def render_dungeon_level(
     """
     Render the level the player is currently on, at the given location.
     """
-    x, y = location
-
-    console.print(x=x, y=y, string=f"Dungeon level: {dungeon_level}")
+    console.print(*location, string=f"Dungeon level: {dungeon_level}")
 
 
 def render_names_at_mouse_location(
@@ -65,7 +65,7 @@ def render_names_at_mouse_location(
 
 
 def get_render_x_pos(engine: Engine) -> int:
-    if engine.player.x <= 30:
-        return 40
+    if engine.player.x <= Config.overlay_border:
+        return Config.overlay_right_x
     else:
-        return 0
+        return Config.overlay_left_x
