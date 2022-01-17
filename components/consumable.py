@@ -197,6 +197,7 @@ class MagicBook(Consumable):
                 f"Not enough mana to use this book, you need {self.mp} MP",
                 color.mp_use
             )
+            return None
         self.engine.message_log.add_message(
             f"You use {self.mp} MP and cast {self.name} spell",
             color.mp_use

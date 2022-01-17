@@ -11,7 +11,7 @@ import tile_types
 
 if TYPE_CHECKING:
     from engine import Engine
-    from entity import Entity
+    from entity_factories import Factory
 
 max_items_by_floor = [
     (1, 1),
@@ -24,7 +24,7 @@ max_monsters_by_floor = [
     (6, 5),
 ]
 
-item_chances: dict[int, list[tuple[Entity, int]]] = {
+item_chances: dict[int, list[tuple[Factory, int]]] = {
     0: [
         (entity_factories.health_potion, 35),
         (entity_factories.mana_potion, 10),
@@ -48,13 +48,14 @@ item_chances: dict[int, list[tuple[Entity, int]]] = {
     ],
     8: [
         (entity_factories.fireball_book, 10),
+        (entity_factories.helmet, 10)
     ]
 }
 
-enemy_chances: dict[int, list[tuple[Entity, int]]] = {
-    0: [(entity_factories.orc, 80)],
-    3: [(entity_factories.troll, 15)],
-    5: [(entity_factories.troll, 30)],
+enemy_chances: dict[int, list[tuple[Factory, int]]] = {
+    0: [(entity_factories.orc, 80), (entity_factories.goblin, 20)],
+    3: [(entity_factories.troll, 5), (entity_factories.goblin, 40)],
+    5: [(entity_factories.troll, 30), (entity_factories.goblin, 80)],
     7: [(entity_factories.troll, 60)],
 }
 
@@ -71,10 +72,10 @@ def get_max_value_for_floor(max_value_by_floor: list[tuple[int, int]], floor: in
 
 
 def get_entities_at_random(
-        weighted_chances_by_floor: dict[int, list[tuple[Entity, int]]],
+        weighted_chances_by_floor: dict[int, list[tuple[Factory, int]]],
         number_of_entities: int,
         floor: int,
-) -> list[Entity]:
+) -> list[Factory]:
     entity_weighted_chances = {}
 
     for key, values in weighted_chances_by_floor.items():
@@ -154,19 +155,20 @@ def place_entities(room: RectangularRoom, dungeon: GameMap, floor_number: int) -
         0, get_max_value_for_floor(max_items_by_floor, floor_number)
     )
 
-    monsters: list[Entity] = get_entities_at_random(
+    monsters: list[Factory] = get_entities_at_random(
         enemy_chances, number_of_monsters, floor_number
     )
-    items: list[Entity] = get_entities_at_random(
+    items: list[Factory] = get_entities_at_random(
         item_chances, number_of_items, floor_number
     )
 
-    for entity in monsters + items:
+    for factory in monsters + items:
         x = random.randint(room.x1 + 1, room.x2 - 1)
         y = random.randint(room.y1 + 1, room.y2 - 1)
 
         if not any(entity_.x == x and entity_.y == y for entity_ in dungeon.entities):
-            entity.spawn(dungeon, x, y)
+            entity = factory.construct(floor_number)
+            entity.place(x, y, dungeon)
 
 
 def generate_dungeon(

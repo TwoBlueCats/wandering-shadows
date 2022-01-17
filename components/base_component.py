@@ -1,11 +1,14 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+import copy
+from typing import TYPE_CHECKING, TypeVar
 
 if TYPE_CHECKING:
     from engine import Engine
     from entity import Entity
     from game_map import GameMap
+
+T = TypeVar("T", bound="BaseComponent")
 
 
 class BaseComponent:
@@ -18,3 +21,6 @@ class BaseComponent:
     @property
     def engine(self) -> Engine:
         return self.game_map.engine
+
+    def copy(self: T) -> T:
+        return copy.deepcopy(self)

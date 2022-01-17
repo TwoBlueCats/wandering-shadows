@@ -390,7 +390,7 @@ class LevelUpEventHandler(AskUserEventHandler):
             if index == 0:
                 player.level.increase_max_hp()
             elif index == 1:
-                player.level.increase_max_hp()
+                player.level.increase_max_mp()
             elif index == 2:
                 player.level.increase_power()
             else:

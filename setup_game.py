@@ -42,8 +42,8 @@ def new_game() -> Engine:
         "Hello and welcome, adventurer, to yet another dungeon!", color.welcome_text
     )
 
-    dagger = copy.deepcopy(entity_factories.dagger)
-    leather_armor = copy.deepcopy(entity_factories.leather_armor)
+    dagger = entity_factories.dagger.construct(0)
+    leather_armor = entity_factories.leather_armor.construct(0)
 
     dagger.parent = player.inventory
     leather_armor.parent = player.inventory
@@ -75,7 +75,7 @@ class MainMenu(input_handlers.BaseEventHandler):
         console.print(
             console.width // 2,
             console.height // 2 - 4,
-            "TOMBS OF THE ANCIENT KINGS",
+            "DUNGEON OF WANDERING SHADOWS",
             fg=color.menu_title,
             alignment=tcod.CENTER,
         )

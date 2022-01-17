@@ -1,6 +1,10 @@
-from enum import Enum, auto
+from enum import IntFlag, auto
 
 
-class EquipmentType(Enum):
+class EquipmentType(IntFlag):
     WEAPON = auto()
     ARMOR = auto()
+    HELMET = auto()
+
+    def get_types(self) -> list[str]:
+        return list(value.name for value in self)

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
+import random
 
 from components.base_component import BaseComponent
 
@@ -49,32 +50,49 @@ class Level(BaseComponent):
     def increase_level(self) -> None:
         self.current_level += 1
 
-    def increase_max_hp(self, amount: int = 20) -> None:
+    def increase_max_hp(self, amount: int = 20, log: bool = True) -> None:
         self.parent.fighter.max_hp += amount
         self.parent.fighter.hp += amount
 
-        self.engine.message_log.add_message("Your health improves!")
+        if log:
+            self.engine.message_log.add_message("Your health improves!")
 
         self.increase_level()
 
-    def increase_max_mp(self, amount: int = 20) -> None:
+    def increase_max_mp(self, amount: int = 20, log: bool = True) -> None:
         self.parent.fighter.max_mp += amount
         self.parent.fighter.restore_mana(amount)
-
-        self.engine.message_log.add_message("Your magic improves!")
+        if log:
+            self.engine.message_log.add_message("Your magic improves!")
 
         self.increase_level()
 
-    def increase_power(self, amount: int = 1) -> None:
+    def increase_power(self, amount: int = 1, log: bool = True) -> None:
         self.parent.fighter.base_power += amount
-
-        self.engine.message_log.add_message("You feel stronger!")
+        if log:
+            self.engine.message_log.add_message("You feel stronger!")
 
         self.increase_level()
 
-    def increase_defense(self, amount: int = 1) -> None:
+    def increase_defense(self, amount: int = 1, log: bool = True) -> None:
         self.parent.fighter.base_defense += amount
-
-        self.engine.message_log.add_message("Your movements are getting swifter!")
+        if log:
+            self.engine.message_log.add_message("Your movements are getting swifter!")
 
         self.increase_level()
+
+    def auto_level_up(self, amount: int, hp: int, mp: int, pw: int, df: int) -> int:
+        values = []
+        if hp > 0:
+            values.append(lambda: self.increase_max_hp(amount=hp, log=False))
+        if mp > 0:
+            values.append(lambda: self.increase_max_mp(amount=mp, log=False))
+        if pw > 0:
+            values.append(lambda: self.increase_power(amount=pw, log=False))
+        if df > 0:
+            values.append(lambda: self.increase_defense(amount=df, log=False))
+        for _ in range(amount):
+            random.choice(values)()
+            self.xp_given += int(self.xp_given * 0.05)
+
+        return self.current_level

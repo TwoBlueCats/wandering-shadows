@@ -128,8 +128,8 @@ class TakeStairsAction(Action):
         """
         if (self.entity.x, self.entity.y) == self.engine.game_map.downstairs_location:
             player = self.engine.player
-            amount = min(self.engine.game_world.current_floor * 15, int(player.fighter.hp * 0.5))
-            if heal := player.fighter.heal(amount) > 0:
+            amount = min(self.engine.game_world.current_floor * 15, int(player.fighter.max_hp * 0.5))
+            if (heal := player.fighter.heal(amount)) > 0:
                 self.engine.message_log.add_message(
                     f"You take a moment to rest, and recover your strength {heal}.",
                     color.descend,
@@ -137,8 +137,8 @@ class TakeStairsAction(Action):
             else:
                 self.engine.message_log.add_message(f"You are full of strength.", color.descend)
 
-            amount = min(self.engine.game_world.current_floor * 20, int(player.fighter.mp * 0.5))
-            if restore := player.fighter.restore_mana(amount) > 0:
+            amount = min(self.engine.game_world.current_floor * 20, int(player.fighter.max_mp * 0.5))
+            if (restore := player.fighter.restore_mana(amount)) > 0:
                 self.engine.message_log.add_message(
                     f"You take a moment to rest, and restore your mana storage {restore}.",
                     color.descend,

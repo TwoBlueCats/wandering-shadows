@@ -29,7 +29,7 @@ def render_bar(
         x: int, y: int, total_width: int,
         text: str,
 ) -> None:
-    bar_width = int(float(current_value) / maximum_value * total_width)
+    bar_width = min(total_width, int(float(current_value) / maximum_value * total_width))
 
     console.draw_rect(x=x, y=y, width=total_width, height=1, ch=1, bg=bg)
 

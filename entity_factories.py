@@ -4,7 +4,14 @@ from components.equipment import Equipment
 from components.fighter import Fighter
 from components.inventory import Inventory
 from components.level import Level
-from entity import Actor, Item
+from entity import Entity, Actor, Item
+from equipment_types import EquipmentType
+
+
+class Factory:
+    def construct(self, floor: int) -> Entity:
+        raise NotImplementedError()
+
 
 player = Actor(
     char="@",
@@ -17,92 +24,147 @@ player = Actor(
     level=Level(level_up_base=200),
 )
 
+
 # ----- Enemies -----
 
-orc = Actor(
+class EnemyFactory(Factory):
+    def __init__(self, char: str, color: tuple[int, int, int], name: str, fighter: Fighter, xp: int, base_floor: int):
+        self.char = char
+        self.color = color
+        self.name = name
+        self.fighter = fighter
+        self.xp = xp
+        self.base_level = base_floor
+
+    def construct(self, floor: int) -> Actor:
+        enemy = Actor(
+            char=self.char,
+            color=self.color,
+            name=self.name,
+            ai_cls=HostileEnemy,
+            equipment=Equipment(),
+            fighter=self.fighter.copy(),
+            inventory=Inventory(capacity=0),
+            level=Level(xp_given=self.xp)
+        )
+        enemy.level.auto_level_up((floor - self.base_level) // 2, enemy.fighter.max_hp // 10, 0, 1, 1)
+        return enemy
+
+
+orc = EnemyFactory(
     char="o",
     color=(63, 127, 63),
     name="Orc",
-    ai_cls=HostileEnemy,
-    equipment=Equipment(),
     fighter=Fighter(hp=20, defense=0, power=4),
-    inventory=Inventory(capacity=0),
-    level=Level(xp_given=35),
+    xp=35,
+    base_floor=1,
 )
-troll = Actor(
+goblin = EnemyFactory(
+    char="g",
+    color=(63, 127, 63),
+    name="Goblin",
+    fighter=Fighter(hp=20, defense=1, power=5),
+    xp=60,
+    base_floor=3,
+)
+troll = EnemyFactory(
     char="T",
     color=(0, 127, 0),
     name="Troll",
-    ai_cls=HostileEnemy,
-    equipment=Equipment(),
     fighter=Fighter(hp=30, defense=2, power=8),
-    inventory=Inventory(capacity=0),
-    level=Level(xp_given=100),
+    xp=100,
+    base_floor=4
 )
+
 
 # ----- Items -----
 
-health_potion = Item(
+class ItemFactory(Factory):
+    def __init__(self, char: str, color: tuple[int, int, int], name: str,
+                 consume: consumable.Consumable = None,
+                 equip: equippable.Equippable = None,
+                 base_floor: int = -1):
+        self.char = char
+        self.color = color
+        self.name = name
+        self.consume = consume
+        self.equip = equip
+        self.base_level = base_floor
+
+    def construct(self, floor: int) -> Item:
+        item = Item(
+            char=self.char,
+            color=self.color,
+            name=self.name,
+            consumable=self.consume.copy() if self.consume is not None else None,
+            equippable=self.equip.copy() if self.equip is not None else None
+        )
+        if self.base_level != -1:
+            pass
+        return item
+
+
+health_potion = ItemFactory(
     char="&",
     color=(127, 0, 255),
     name="Health Potion",
-    consumable=consumable.HealingConsumable(amount=40),
+    consume=consumable.HealingConsumable(amount=40),
 )
-mana_potion = Item(
+mana_potion = ItemFactory(
     char="&",
     color=(0, 0, 255),
     name="Mana Potion",
-    consumable=consumable.ManaConsumable(amount=10),
+    consume=consumable.ManaConsumable(amount=10),
 )
-healing_book = Item(
+healing_book = ItemFactory(
     char="#",
     color=(127, 0, 255),
     name="Magic book: Health",
-    consumable=consumable.MagicBook(mp=20, name="healing", consumable=consumable.HealingConsumable(amount=40)),
+    consume=consumable.MagicBook(mp=20, name="healing", consumable=consumable.HealingConsumable(amount=40)),
 )
-lightning_scroll = Item(
+lightning_scroll = ItemFactory(
     char="~",
     color=(255, 255, 0),
     name="Lightning Scroll",
-    consumable=consumable.LightningDamageConsumable(damage=30, maximum_range=5),
+    consume=consumable.LightningDamageConsumable(damage=30, maximum_range=5),
 )
-fireball_scroll = Item(
+fireball_scroll = ItemFactory(
     char="~",
     color=(255, 0, 0),
     name="Fireball Scroll",
-    consumable=consumable.FireballDamageConsumable(damage=15, radius=3),
+    consume=consumable.FireballDamageConsumable(damage=15, radius=3),
 )
-confusion_scroll = Item(
+confusion_scroll = ItemFactory(
     char="~",
     color=(207, 63, 255),
     name="Confusion Scroll",
-    consumable=consumable.ConfusionConsumable(number_of_turns=10),
+    consume=consumable.ConfusionConsumable(number_of_turns=10),
 )
-lightning_book = Item(
+lightning_book = ItemFactory(
     char="#",
     color=(255, 255, 0),
     name="Magic book: Lighting",
-    consumable=consumable.MagicBook(
+    consume=consumable.MagicBook(
         mp=30,
         name="lightning",
         consumable=consumable.LightningDamageConsumable(damage=30, maximum_range=4),
     ),
 )
-fireball_book = Item(
+fireball_book = ItemFactory(
     char="#",
     color=(255, 0, 0),
     name="Magic book: Fireball",
-    consumable=consumable.MagicBook(
+    consume=consumable.MagicBook(
         mp=40,
         name="fireball",
         consumable=consumable.FireballDamageConsumable(damage=30, radius=3),
     ),
 )
-confusion_book = Item(
+confusion_book = ItemFactory(
     char="#",
     color=(207, 63, 255),
     name="Magic book: Confusion",
-    consumable=consumable.MagicBook(
+    consume=consumable.MagicBook(
         mp=20,
         name="confusion",
         consumable=consumable.ConfusionConsumable(number_of_turns=5),
@@ -110,29 +172,35 @@ confusion_book = Item(
 )
 
 # ----- Equipment
-dagger = Item(
+dagger = ItemFactory(
     char="/",
     color=(0, 191, 255),
     name="Dagger",
-    equippable=equippable.Weapon(power_bonus=2),
+    equip=equippable.Weapon(power_bonus=1),
 )
-sword = Item(
+sword = ItemFactory(
     char="/",
     color=(0, 191, 255),
     name="Sword",
-    equippable=equippable.Weapon(power_bonus=4),
+    equip=equippable.Weapon(power_bonus=3),
 )
 
-leather_armor = Item(
+leather_armor = ItemFactory(
     char="[",
     color=(139, 69, 19),
     name="Leather Armor",
-    equippable=equippable.Armor(defense_bonus=1),
+    equip=equippable.Armor(defense_bonus=1),
 )
-
-chain_mail = Item(
+chain_mail = ItemFactory(
     char="[",
     color=(139, 69, 19),
     name="Chain Mail",
-    equippable=equippable.Armor(defense_bonus=4),
+    equip=equippable.Equippable(equipment_type=EquipmentType.ARMOR, defense_bonus=4, power_bonus=-1),
+)
+
+helmet = ItemFactory(
+    char="^",
+    color=(139, 69, 19),
+    name="Helmet",
+    equip=equippable.Equippable(equipment_type=EquipmentType.HELMET, defense_bonus=2),
 )
