@@ -35,7 +35,8 @@ class Entity:
             color: tuple[int, int, int] = (255, 255, 255),
             name: str = "<Unnamed>",
             blocks_movement: bool = False,
-            render_order: RenderOrder = RenderOrder.CORPSE
+            render_order: RenderOrder = RenderOrder.CORPSE,
+            dungeon_level: int = -1,
     ):
         self.x = x
         self.y = y
@@ -48,6 +49,11 @@ class Entity:
             # If parent isn't provided now then it will be set later.
             self.parent = parent
             parent.entities.add(self)
+        self.dungeon_level = dungeon_level
+
+    @property
+    def position(self) -> tuple[int, int]:
+        return self.x, self.y
 
     def move(self, dx: int, dy: int) -> None:
         # Move the entity by a given amount
@@ -102,6 +108,7 @@ class Actor(Entity):
             fighter: Fighter,
             inventory: Inventory,
             level: Level,
+            dungeon_level: int = -1,
     ):
         super().__init__(
             x=x,
@@ -111,6 +118,7 @@ class Actor(Entity):
             name=name,
             blocks_movement=True,
             render_order=RenderOrder.ACTOR,
+            dungeon_level=dungeon_level,
         )
 
         self.ai: Optional[BaseAI] = ai_cls(self)
@@ -144,6 +152,7 @@ class Item(Entity):
             name: str = "<Unnamed>",
             consumable: Optional[Consumable] = None,
             equippable: Optional[Equippable] = None,
+            dungeon_level: int = -1,
     ):
         super().__init__(
             x=x,
@@ -153,6 +162,7 @@ class Item(Entity):
             name=name,
             blocks_movement=False,
             render_order=RenderOrder.ITEM,
+            dungeon_level=dungeon_level,
         )
 
         self.consumable = consumable
@@ -162,3 +172,18 @@ class Item(Entity):
         self.equippable = equippable
         if self.equippable:
             self.equippable.parent = self
+
+    def description(self) -> list[str]:
+        messages = [
+            f"Name: {self.name}",
+            f"Dungeon level: {self.dungeon_level}"
+        ]
+
+        if self.equippable is not None:
+            messages.append("")
+            messages.extend(self.equippable.description())
+        if self.consumable is not None:
+            messages.append("")
+            messages.extend(self.consumable.description())
+
+        return messages

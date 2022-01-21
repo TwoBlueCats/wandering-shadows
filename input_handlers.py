@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from typing import Optional, TYPE_CHECKING, Callable, Union
+from typing import Optional, Type, TYPE_CHECKING, Callable, Union
 
 import tcod.event
 
@@ -15,6 +15,7 @@ from actions import (
     DropItem,
     TakeStairsAction,
     EquipAction,
+    ImpossibleAction,
 )
 import color
 import exceptions
@@ -505,6 +506,51 @@ class InventoryDropHandler(InventoryEventHandler):
         return DropItem(self.engine.player, item)
 
 
+class InventoryExploreHandler(InventoryEventHandler):
+    TITLE = "Select item to explore"
+
+    def on_item_selected(self, item: Item) -> Optional[ActionOrHandler]:
+        return ItemDescriptionHandler(self.engine, item, previous=InventoryExploreHandler)
+
+
+class ItemDescriptionHandler(AskUserEventHandler):
+    TITLE = "Item characters"
+
+    def __init__(self, engine: Engine, item: Item, previous: Optional[Type[EventHandler]] = None):
+        super().__init__(engine)
+        self.item = item
+        self.previous = previous
+
+    def on_render(self, console: tcod.Console) -> None:
+        super().on_render(console)
+
+        x = render_utils.get_render_x_pos(self.engine)
+        y = Config.data_top_y
+        width = Config.overlay_width
+
+        messages = self.item.description()
+
+        console.draw_frame(
+            x=x,
+            y=y,
+            width=width,
+            height=len(messages) + 2,  # top & bottom borders
+            title=self.TITLE,
+            clear=True,
+            fg=color.white,
+            bg=color.black,
+        )
+
+        console.print(
+            x=x + 1, y=y + 1, string="\n".join(messages)
+        )
+
+    def on_exit(self) -> Optional[ActionOrHandler]:
+        if self.previous:
+            return self.previous(self.engine)
+        return MainGameEventHandler(self.engine)
+
+
 class SelectIndexHandler(AskUserEventHandler):
     """Handles asking the user for an index on the map."""
 
@@ -561,8 +607,11 @@ class SelectIndexHandler(AskUserEventHandler):
 class LookHandler(SelectIndexHandler):
     """Lets the player look around using the keyboard."""
 
-    def on_index_selected(self, x: int, y: int) -> MainGameEventHandler:
+    def on_index_selected(self, x: int, y: int) -> Optional[ActionOrHandler]:
         """Return to main handler."""
+        for item in self.engine.game_map.items:
+            if item.x == x and item.y == y:
+                return ItemDescriptionHandler(self.engine, item, LookHandler)
         return MainGameEventHandler(self.engine)
 
 
@@ -645,6 +694,8 @@ class MainGameEventHandler(EventHandler):
             return CharacterScreenEventHandler(self.engine)
         elif key == tcod.event.K_s:
             return ControlScreenEventHandler(self.engine)
+        elif key == tcod.event.K_e:
+            return InventoryExploreHandler(self.engine)
         # No valid key was pressed
         return action
 

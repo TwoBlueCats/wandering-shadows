@@ -16,7 +16,7 @@ class BaseAI(Action):
         raise NotImplementedError()
 
     def get_path_to(self, dest_x: int, dest_y: int) -> list[tuple[int, int]]:
-        """Compute and return a path to the target position.
+        """Compute and return a path to the targetType position.
 
         If there is no valid path then returns an empty list.
         """

@@ -244,3 +244,12 @@ class DirectedActionDispatcher(ActionWithDirection):
     @staticmethod
     def action_name():
         return "DirectedActionDispatcher"
+
+
+class ImpossibleAction(Action):
+    def perform(self) -> None:
+        raise exceptions.Impossible("It is impossible actions")
+
+    @staticmethod
+    def action_name():
+        return "ImpossibleAction"

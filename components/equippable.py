@@ -3,13 +3,14 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from components.base_component import BaseComponent
-from equipment_types import EquipmentType
+from components_types import EquipmentType
 
 if TYPE_CHECKING:
     from entity import Item
 
 
 class Equippable(BaseComponent):
+    _bonuses = ["power", "defense"]
     parent: Item
 
     def __init__(
@@ -22,6 +23,15 @@ class Equippable(BaseComponent):
 
         self.power_bonus = power_bonus
         self.defense_bonus = defense_bonus
+
+    def bonuses(self) -> list[tuple[str, int]]:
+        return [(name, getattr(self, f"{name}_bonus")) for name in self._bonuses]
+
+    def description(self) -> list[str]:
+        data = []
+        for (name, value) in self.bonuses():
+            data.append(f"{name.title()} bonus: {value}")
+        return data
 
 
 class Weapon(Equippable):

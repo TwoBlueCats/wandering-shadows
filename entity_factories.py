@@ -5,7 +5,7 @@ from components.fighter import Fighter
 from components.inventory import Inventory
 from components.level import Level
 from entity import Entity, Actor, Item
-from equipment_types import EquipmentType
+from components_types import EquipmentType, ConsumableTarget as Target
 
 
 class Factory:
@@ -45,7 +45,8 @@ class EnemyFactory(Factory):
             equipment=Equipment(),
             fighter=self.fighter.copy(),
             inventory=Inventory(capacity=0),
-            level=Level(xp_given=self.xp)
+            level=Level(xp_given=self.xp),
+            dungeon_level=floor,
         )
         enemy.level.auto_level_up((floor - self.base_level) // 2, enemy.fighter.max_hp // 10, 0, 1, 1)
         return enemy
@@ -97,7 +98,8 @@ class ItemFactory(Factory):
             color=self.color,
             name=self.name,
             consumable=self.consume.copy() if self.consume is not None else None,
-            equippable=self.equip.copy() if self.equip is not None else None
+            equippable=self.equip.copy() if self.equip is not None else None,
+            dungeon_level=floor,
         )
         if self.base_level != -1:
             pass
@@ -108,37 +110,50 @@ health_potion = ItemFactory(
     char="&",
     color=(127, 0, 255),
     name="Health Potion",
-    consume=consumable.HealingConsumable(amount=40),
+    consume=consumable.HealingConsumable(target=Target.SELF, amount=40),
 )
 mana_potion = ItemFactory(
     char="&",
     color=(0, 0, 255),
     name="Mana Potion",
-    consume=consumable.ManaConsumable(amount=10),
+    consume=consumable.ManaConsumable(target=Target.SELF, amount=10),
 )
-healing_book = ItemFactory(
-    char="#",
-    color=(127, 0, 255),
-    name="Magic book: Health",
-    consume=consumable.MagicBook(mp=20, name="healing", consumable=consumable.HealingConsumable(amount=40)),
+universal_potion = ItemFactory(
+    char="&",
+    color=(64, 0, 255),
+    name="Universal Potion",
+    consume=consumable.Combine([
+        consumable.HealingConsumable(target=Target.SELF, amount=40),
+        consumable.ManaConsumable(target=Target.SELF, amount=20)
+    ])
 )
+
 lightning_scroll = ItemFactory(
     char="~",
     color=(255, 255, 0),
     name="Lightning Scroll",
-    consume=consumable.LightningDamageConsumable(damage=30, maximum_range=5),
+    consume=consumable.LightningDamageConsumable(target=Target.NEAREST, damage=30, maximum_range=5),
 )
 fireball_scroll = ItemFactory(
     char="~",
     color=(255, 0, 0),
     name="Fireball Scroll",
-    consume=consumable.FireballDamageConsumable(damage=15, radius=3),
+    consume=consumable.FireballDamageConsumable(target=Target.RANGED, damage=15, radius=3),
 )
 confusion_scroll = ItemFactory(
     char="~",
     color=(207, 63, 255),
     name="Confusion Scroll",
-    consume=consumable.ConfusionConsumable(number_of_turns=10),
+    consume=consumable.ConfusionConsumable(target=Target.SELECTED, number_of_turns=10),
+)
+
+healing_book = ItemFactory(
+    char="#",
+    color=(127, 0, 255),
+    name="Magic book: Health",
+    consume=consumable.MagicBook(mp=20, name="healing",
+                                 consumable=consumable.HealingConsumable(target=Target.SELF, amount=40),
+                                 ),
 )
 lightning_book = ItemFactory(
     char="#",
@@ -147,7 +162,7 @@ lightning_book = ItemFactory(
     consume=consumable.MagicBook(
         mp=30,
         name="lightning",
-        consumable=consumable.LightningDamageConsumable(damage=30, maximum_range=4),
+        consumable=consumable.LightningDamageConsumable(target=Target.NEAREST, damage=30, maximum_range=4),
     ),
 )
 fireball_book = ItemFactory(
@@ -157,7 +172,7 @@ fireball_book = ItemFactory(
     consume=consumable.MagicBook(
         mp=40,
         name="fireball",
-        consumable=consumable.FireballDamageConsumable(damage=30, radius=3),
+        consumable=consumable.FireballDamageConsumable(target=Target.RANGED, damage=30, radius=3),
     ),
 )
 confusion_book = ItemFactory(
@@ -167,7 +182,7 @@ confusion_book = ItemFactory(
     consume=consumable.MagicBook(
         mp=20,
         name="confusion",
-        consumable=consumable.ConfusionConsumable(number_of_turns=5),
+        consumable=consumable.ConfusionConsumable(target=Target.SELECTED, number_of_turns=5),
     ),
 )
 

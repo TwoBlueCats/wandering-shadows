@@ -103,9 +103,12 @@ class Fighter(BaseComponent):
         self.engine.message_log.add_message(death_message, death_message_color)
 
     def heal(self, amount: int) -> int:
+        if not self.parent.is_alive:
+            return 0
         before = self.hp
         self.hp += amount
         return self.hp - before
 
     def take_damage(self, amount: int) -> None:
-        self.hp -= amount
+        if self.parent.is_alive:
+            self.hp -= amount

@@ -45,6 +45,7 @@ item_chances: dict[int, list[tuple[Factory, int]]] = {
         (entity_factories.fireball_scroll, 25),
         (entity_factories.chain_mail, 15),
         (entity_factories.lightning_book, 10),
+        (entity_factories.universal_potion, 30),
     ],
     8: [
         (entity_factories.fireball_book, 10),
@@ -184,7 +185,6 @@ def generate_dungeon(
     dungeon = GameMap(engine, map_width, map_height, entities=[player])
 
     rooms: list[RectangularRoom] = []
-    center_of_last_room = (0, 0)
 
     for r in range(max_rooms):
         room_width = random.randint(room_min_size, room_max_size)
@@ -211,14 +211,18 @@ def generate_dungeon(
             # Dig out a tunnel between this room and the previous one.
             for x, y in tunnel_between(rooms[-1].center, new_room.center):
                 dungeon.tiles[x, y] = tile_types.floor
-            center_of_last_room = new_room.center
 
         place_entities(new_room, dungeon, engine.game_world.current_floor)
 
         # Finally, append the new room to the list.
         rooms.append(new_room)
 
-    dungeon.tiles[center_of_last_room] = tile_types.down_stairs
-    dungeon.downstairs_location = center_of_last_room
+    farthest = player.position
+    for room in rooms:
+        if player.distance(*room.center) > player.distance(*farthest):
+            farthest = room.center
+
+    dungeon.tiles[farthest] = tile_types.down_stairs
+    dungeon.downstairs_location = farthest
 
     return dungeon

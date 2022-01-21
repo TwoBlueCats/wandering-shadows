@@ -34,15 +34,16 @@ class Level(BaseComponent):
     def requires_level_up(self) -> bool:
         return self.current_xp >= self.experience_to_next_level
 
-    def add_xp(self, xp: int) -> None:
+    def add_xp(self, xp: int, log: bool = True) -> None:
         if xp == 0 or self.level_up_base == 0:
             return
 
         self.current_xp += xp
 
-        self.engine.message_log.add_message(f"You gain {xp} experience points.")
+        if log:
+            self.engine.message_log.add_message(f"You gain {xp} experience points.")
 
-        if self.requires_level_up:
+        if self.requires_level_up and log:
             self.engine.message_log.add_message(
                 f"You advance to level {self.current_level + 1}!"
             )
