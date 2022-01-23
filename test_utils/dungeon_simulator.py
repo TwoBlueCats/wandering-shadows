@@ -95,8 +95,9 @@ def main():
                         continue
                     damage = player.fighter.power - monster.fighter.defense
                     if damage > 0:
-                        turns = math.ceil(monster.fighter.hp / (player.fighter.power - monster.fighter.defense))
-                        receive = monster.fighter.power - player.fighter.defense
+                        turns = math.ceil(monster.fighter.hp /
+                                          (int(player.fighter.power) - int(monster.fighter.defense)))
+                        receive = int(monster.fighter.power) - int(player.fighter.defense)
                         if turns * receive > 0:
                             cheat = False
                         else:

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Union
 
 import color
 from components.base_component import BaseComponent
@@ -8,12 +8,13 @@ from render_order import RenderOrder
 
 if TYPE_CHECKING:
     from entity import Actor
+    from ranged_value import Range
 
 
 class Fighter(BaseComponent):
     parent: Actor
 
-    def __init__(self, hp: int, defense: int, power: int, mp: int = 0):
+    def __init__(self, hp: int, defense: Range, power: Range, mp: int = 0):
         self.max_hp = hp
         self._hp = hp
 
@@ -34,26 +35,26 @@ class Fighter(BaseComponent):
             self.die()
 
     @property
-    def defense(self) -> int:
+    def defense(self) -> Range:
         return self.base_defense + self.defense_bonus
 
     @property
-    def power(self) -> int:
+    def power(self) -> Range:
         return self.base_power + self.power_bonus
 
     @property
-    def defense_bonus(self) -> int:
+    def defense_bonus(self) -> Range:
         if self.parent.equipment:
             return self.parent.equipment.defense_bonus
         else:
-            return 0
+            return Range(0)
 
     @property
-    def power_bonus(self) -> int:
+    def power_bonus(self) -> Range:
         if self.parent.equipment:
             return self.parent.equipment.power_bonus
         else:
-            return 0
+            return Range(0)
 
     @property
     def power_str(self) -> str:
@@ -112,3 +113,9 @@ class Fighter(BaseComponent):
     def take_damage(self, amount: int) -> None:
         if self.parent.is_alive:
             self.hp -= amount
+
+    def description(self) -> list[str]:
+        return [f"HP: {self.hp}",
+                f"Power: {self.power}",
+                f"Defense: {self.defense}",
+                ]

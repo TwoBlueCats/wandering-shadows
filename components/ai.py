@@ -91,6 +91,10 @@ class ConfusedEnemy(BaseAI):
             # Its possible the actor will just bump into the wall, wasting a turn.
             return DirectedActionDispatcher(self.entity, direction_x, direction_y).perform()
 
+    @staticmethod
+    def action_name():
+        return "ConfusedEnemy"
+
 
 class HostileEnemy(BaseAI):
     def __init__(self, entity: Actor):

@@ -93,6 +93,9 @@ class Entity:
     def copy(self: T) -> T:
         return copy.deepcopy(self)
 
+    def description(self) -> list[str]:
+        raise NotImplementedError
+
 
 class Actor(Entity):
     def __init__(
@@ -140,6 +143,18 @@ class Actor(Entity):
         """Returns True as long as this actor can perform actions."""
         return bool(self.ai)
 
+    def description(self) -> list[str]:
+        messages = [
+            f"Name: {self.name}",
+            f"Level: {self.level.current_level}",
+        ]
+
+        if self.is_alive:
+            messages.append("")
+            messages.extend(self.fighter.description())
+
+        return messages
+
 
 class Item(Entity):
     def __init__(
@@ -176,7 +191,7 @@ class Item(Entity):
     def description(self) -> list[str]:
         messages = [
             f"Name: {self.name}",
-            f"Dungeon level: {self.dungeon_level}"
+            f"Dungeon level: {self.dungeon_level}",
         ]
 
         if self.equippable is not None:

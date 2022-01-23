@@ -20,10 +20,11 @@ from actions import (
 import color
 import exceptions
 from config import Config
+from components_types import ConsumableType
 
 if TYPE_CHECKING:
     from engine import Engine
-    from entity import Item
+    from entity import Item, Entity
 
 MOVE_KEYS = {
     # Arrow keys.
@@ -206,7 +207,7 @@ class CharacterScreenEventHandler(AskUserEventHandler):
             x=x,
             y=y,
             width=width,
-            height=7,
+            height=11,
             title=self.TITLE,
             clear=True,
             fg=color.white,
@@ -217,19 +218,24 @@ class CharacterScreenEventHandler(AskUserEventHandler):
             x=x + 1, y=y + 1, string=f"Level: {self.engine.player.level.current_level}"
         )
         console.print(
-            x=x + 1, y=y + 2, string=f"XP: {self.engine.player.level.current_xp}"
+            x=x + 1, y=y + 3, string=f"XP: {self.engine.player.level.current_xp}"
         )
         console.print(
             x=x + 1,
-            y=y + 3,
+            y=y + 4,
             string=f"XP for next Level: {self.engine.player.level.experience_to_next_level}",
         )
 
         console.print(
-            x=x + 1, y=y + 4, string=f"Attack: {self.engine.player.fighter.power_str}"
+            x=x + 1, y=y + 6, string=f"Attack: {self.engine.player.fighter.power_str}"
         )
         console.print(
-            x=x + 1, y=y + 5, string=f"Defense: {self.engine.player.fighter.defense_str}"
+            x=x + 1, y=y + 7, string=f"Defense: {self.engine.player.fighter.defense_str}"
+        )
+        console.print(
+            x=x + 1,
+            y=y + 9,
+            string=f"Inventory: {len(self.engine.player.inventory.items)}/{self.engine.player.inventory.capacity}"
         )
 
 
@@ -374,12 +380,12 @@ class LevelUpEventHandler(AskUserEventHandler):
         console.print(
             x=x + 1,
             y=y + 6,
-            string=f"c) Strength (+1 attack, from {self.engine.player.fighter.power_str})",
+            string=f"c) Strength (+1 attack, from {self.engine.player.fighter.base_power})",
         )
         console.print(
             x=x + 1,
             y=y + 7,
-            string=f"d) Agility (+1 defense, from {self.engine.player.fighter.defense_str})",
+            string=f"d) Agility (+1 defense, from {self.engine.player.fighter.base_defense})",
         )
 
     def ev_keydown(self, event: tcod.event.KeyDown) -> Optional[ActionOrHandler]:
@@ -411,30 +417,28 @@ class LevelUpEventHandler(AskUserEventHandler):
         return None
 
 
-class InventoryEventHandler(AskUserEventHandler):
-    """This handler lets the user select an item.
-
-    What happens then depends on the subclass.
-    """
-
+class FilteredActivateHandler(AskUserEventHandler):
     TITLE = "<missing title>"
 
+    def __init__(self, engine: Engine, title: str = None, filter: Callable[[Item], bool] = None):
+        super().__init__(engine)
+        self._filtered: list[Item] = []
+        self.filter = filter
+        if title is not None:
+            self.TITLE = title
+
     def on_render(self, console: tcod.Console) -> None:
-        """Render an inventory menu, which displays the items in the inventory, and the letter to select them.
-        Will move to a different position based on where the player is located, so the player can always see where
-        they are.
-        """
         super().on_render(console)
-        number_of_items_in_inventory = len(self.engine.player.inventory.items)
-
-        height = number_of_items_in_inventory + 2
-
-        if height <= 3:
-            height = 3
 
         x = render_utils.get_render_x_pos(self.engine)
         y = 0
         width = Config.overlay_width
+
+        self._filtered = list(filter(self.filter, self.engine.player.inventory.items))
+
+        height = 2 + len(self._filtered)
+        if height <= 3:
+            height = 3
 
         console.draw_frame(
             x=x,
@@ -447,40 +451,36 @@ class InventoryEventHandler(AskUserEventHandler):
             bg=color.black,
         )
 
-        if number_of_items_in_inventory > 0:
-            for i, item in enumerate(self.engine.player.inventory.items):
-                item_key = chr(ord("a") + i)
-                is_equipped = self.engine.player.equipment.item_is_equipped(item)
-
-                item_string = f"({item_key}) {item.name}"
-
-                if is_equipped:
-                    item_string = f"{item_string} (E)"
-
-                console.print(x + 1, y + i + 1, item_string)
+        if len(self._filtered) > 0:
+            render_utils.render_items_list(console, self._filtered, self.engine.player.equipment, x, y)
         else:
             console.print(x + 1, y + 1, "(Empty)")
 
     def ev_keydown(self, event: tcod.event.KeyDown) -> Optional[ActionOrHandler]:
-        player = self.engine.player
         key = event.sym
         index = key - tcod.event.K_a
 
         if 0 <= index <= 26:
-            try:
-                selected_item = player.inventory.items[index]
-            except IndexError:
+            selected_item: Optional[Item] = None
+            if index < len(self._filtered):
+                selected_item = self._filtered[index]
+            if selected_item is None:
                 self.engine.message_log.add_message("Invalid entry.", color.invalid)
                 return None
             return self.on_item_selected(selected_item)
         return super().ev_keydown(event)
 
     def on_item_selected(self, item: Item) -> Optional[ActionOrHandler]:
-        """Called when the user selects a valid item."""
-        raise NotImplementedError()
+        """Return the action for the selected item."""
+        if item.consumable:
+            return item.consumable.get_action(self.engine.player)
+        elif item.equippable:
+            return EquipAction(self.engine.player, item)
+        else:
+            return None
 
 
-class InventoryActivateHandler(InventoryEventHandler):
+class InventoryActivateHandler(FilteredActivateHandler):
     """Handle using an inventory item."""
 
     TITLE = "Select an item to use"
@@ -496,7 +496,7 @@ class InventoryActivateHandler(InventoryEventHandler):
             return None
 
 
-class InventoryDropHandler(InventoryEventHandler):
+class InventoryDropHandler(FilteredActivateHandler):
     """Handle dropping an inventory item."""
 
     TITLE = "Select an item to drop"
@@ -506,19 +506,19 @@ class InventoryDropHandler(InventoryEventHandler):
         return DropItem(self.engine.player, item)
 
 
-class InventoryExploreHandler(InventoryEventHandler):
+class InventoryExploreHandler(FilteredActivateHandler):
     TITLE = "Select item to explore"
 
     def on_item_selected(self, item: Item) -> Optional[ActionOrHandler]:
-        return ItemDescriptionHandler(self.engine, item, previous=InventoryExploreHandler)
+        return EntityDescriptionHandler(self.engine, item, previous=InventoryExploreHandler)
 
 
-class ItemDescriptionHandler(AskUserEventHandler):
-    TITLE = "Item characters"
+class EntityDescriptionHandler(AskUserEventHandler):
+    TITLE = "Entity characters"
 
-    def __init__(self, engine: Engine, item: Item, previous: Optional[Type[EventHandler]] = None):
+    def __init__(self, engine: Engine, entity: Entity, previous: Optional[Type[EventHandler]] = None):
         super().__init__(engine)
-        self.item = item
+        self.entity = entity
         self.previous = previous
 
     def on_render(self, console: tcod.Console) -> None:
@@ -528,7 +528,7 @@ class ItemDescriptionHandler(AskUserEventHandler):
         y = Config.data_top_y
         width = Config.overlay_width
 
-        messages = self.item.description()
+        messages = self.entity.description()
 
         console.draw_frame(
             x=x,
@@ -609,9 +609,9 @@ class LookHandler(SelectIndexHandler):
 
     def on_index_selected(self, x: int, y: int) -> Optional[ActionOrHandler]:
         """Return to main handler."""
-        for item in self.engine.game_map.items:
+        for item in self.engine.game_map.entities:
             if item.x == x and item.y == y:
-                return ItemDescriptionHandler(self.engine, item, LookHandler)
+                return EntityDescriptionHandler(self.engine, item, LookHandler)
         return MainGameEventHandler(self.engine)
 
 
@@ -696,6 +696,25 @@ class MainGameEventHandler(EventHandler):
             return ControlScreenEventHandler(self.engine)
         elif key == tcod.event.K_e:
             return InventoryExploreHandler(self.engine)
+        elif key == tcod.event.K_m:
+            def filter(item: Item) -> bool:
+                if item.consumable is None:
+                    return False
+                return item.consumable.consumeType in (ConsumableType.BOOK | ConsumableType.SCROLL)
+
+            return FilteredActivateHandler(self.engine, "Magic items list", filter)
+        elif key == tcod.event.K_p:
+            def filter(item: Item) -> bool:
+                if item.consumable is None:
+                    return False
+                return item.consumable.consumeType in ConsumableType.POTION
+
+            return FilteredActivateHandler(self.engine, "Potion list", filter)
+        elif key == tcod.event.K_q:
+            def filter(item: Item) -> bool:
+                return item.equippable is not None
+
+            return FilteredActivateHandler(self.engine, "Equipment items list", filter)
         # No valid key was pressed
         return action
 

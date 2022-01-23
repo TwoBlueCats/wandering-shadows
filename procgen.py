@@ -49,8 +49,12 @@ item_chances: dict[int, list[tuple[Factory, int]]] = {
     ],
     8: [
         (entity_factories.fireball_book, 10),
-        (entity_factories.helmet, 10)
-    ]
+        (entity_factories.helmet, 10),
+    ],
+    10: [
+        (entity_factories.shield, 10),
+        (entity_factories.health_potion, 10),
+    ],
 }
 
 enemy_chances: dict[int, list[tuple[Factory, int]]] = {

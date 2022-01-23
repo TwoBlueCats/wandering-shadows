@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 
 from components.base_component import BaseComponent
 from components_types import EquipmentType
+from ranged_value import Range
 
 if TYPE_CHECKING:
     from entity import Item
@@ -16,13 +17,13 @@ class Equippable(BaseComponent):
     def __init__(
             self,
             equipment_type: EquipmentType,
-            power_bonus: int = 0,
-            defense_bonus: int = 0,
+            power_bonus: Range = None,
+            defense_bonus: Range = None,
     ):
         self.equipment_type = equipment_type
 
-        self.power_bonus = power_bonus
-        self.defense_bonus = defense_bonus
+        self.power_bonus = power_bonus or Range(0)
+        self.defense_bonus = defense_bonus or Range(0)
 
     def bonuses(self) -> list[tuple[str, int]]:
         return [(name, getattr(self, f"{name}_bonus")) for name in self._bonuses]
@@ -35,10 +36,10 @@ class Equippable(BaseComponent):
 
 
 class Weapon(Equippable):
-    def __init__(self, power_bonus: int = 0) -> None:
+    def __init__(self, power_bonus: Range = None) -> None:
         super().__init__(equipment_type=EquipmentType.WEAPON, power_bonus=power_bonus)
 
 
 class Armor(Equippable):
-    def __init__(self, defense_bonus: int = 0) -> None:
+    def __init__(self, defense_bonus: Range = 0) -> None:
         super().__init__(equipment_type=EquipmentType.ARMOR, defense_bonus=defense_bonus)

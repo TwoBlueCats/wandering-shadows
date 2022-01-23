@@ -12,7 +12,8 @@ import components.inventory
 from components.base_component import BaseComponent
 from exceptions import Impossible
 from input_handlers import SingleRangedAttackHandler, AreaRangedAttackHandler, ActionOrHandler
-from components_types import ConsumableTarget
+from components_types import ConsumableTarget, ConsumableType
+from ranged_value import Range
 
 if TYPE_CHECKING:
     from entity import Actor, Item
@@ -21,8 +22,9 @@ if TYPE_CHECKING:
 class Consumable(BaseComponent):
     parent: Item
 
-    def __init__(self, target: ConsumableTarget):
+    def __init__(self, target: ConsumableTarget, consume_type: ConsumableType = ConsumableType.NONE):
         self.targetType = target
+        self.consumeType = consume_type
         self._targets: Optional[list[Actor]] = None
 
     def get_action(self, consumer: Actor) -> Optional[ActionOrHandler]:
@@ -131,8 +133,8 @@ class Consumable(BaseComponent):
 
 
 class HealingConsumable(Consumable):
-    def __init__(self, target: ConsumableTarget, amount: int):
-        super().__init__(target)
+    def __init__(self, target: ConsumableTarget, amount: int, consume_type: ConsumableType = ConsumableType.NONE):
+        super().__init__(target, consume_type)
         self.amount = amount
 
     def activate(self, action: actions.ItemAction) -> None:
@@ -156,8 +158,8 @@ class HealingConsumable(Consumable):
 
 
 class ManaConsumable(Consumable):
-    def __init__(self, target: ConsumableTarget, amount: int):
-        super().__init__(target)
+    def __init__(self, target: ConsumableTarget, amount: int, consume_type: ConsumableType = ConsumableType.NONE):
+        super().__init__(target, consume_type)
         self.amount = amount
 
     def activate(self, action: actions.ItemAction) -> None:
@@ -181,8 +183,9 @@ class ManaConsumable(Consumable):
 
 
 class LightningDamageConsumable(Consumable):
-    def __init__(self, target: ConsumableTarget, damage: int, maximum_range: int):
-        super().__init__(target)
+    def __init__(self, target: ConsumableTarget, damage: Range, maximum_range: int,
+                 consume_type: ConsumableType = ConsumableType.NONE):
+        super().__init__(target, consume_type)
         self.damage = damage
         self.maximum_range = maximum_range
 
@@ -192,9 +195,10 @@ class LightningDamageConsumable(Consumable):
 
     def activate(self, action: actions.ItemAction) -> None:
         for target in self._targets:
-            target.fighter.take_damage(self.damage)
+            damage = int(self.damage)
+            target.fighter.take_damage(damage)
             self.engine.message_log.add_message(
-                f"A lighting bolt strikes the {target.name} with a loud thunder, for {self.damage} damage!"
+                f"A lighting bolt strikes the {target.name} with a loud thunder, for {damage} damage!"
             )
 
         if len(self._targets) > 0:
@@ -208,8 +212,9 @@ class LightningDamageConsumable(Consumable):
 
 
 class FireballDamageConsumable(Consumable):
-    def __init__(self, target: ConsumableTarget, damage: int, radius: int):
-        super().__init__(target)
+    def __init__(self, target: ConsumableTarget, damage: Range, radius: int,
+                 consume_type: ConsumableType = ConsumableType.NONE):
+        super().__init__(target, consume_type)
         self.damage = damage
         self._radius = radius
 
@@ -222,9 +227,10 @@ class FireballDamageConsumable(Consumable):
             raise Impossible("You cannot target an area that you cannot see.")
 
         for target in self._targets:
-            target.fighter.take_damage(self.damage)
+            damage = int(self.damage)
+            target.fighter.take_damage(damage)
             self.engine.message_log.add_message(
-                f"The {target.name} is engulfed in a fiery explosion, taking {self.damage} damage!"
+                f"The {target.name} is engulfed in a fiery explosion, taking {damage} damage!"
             )
 
         if len(self._targets) > 0:
@@ -238,8 +244,9 @@ class FireballDamageConsumable(Consumable):
 
 
 class ConfusionConsumable(Consumable):
-    def __init__(self, target: ConsumableTarget, number_of_turns: int):
-        super().__init__(target)
+    def __init__(self, target: ConsumableTarget, number_of_turns: int,
+                 consume_type: ConsumableType = ConsumableType.NONE):
+        super().__init__(target, consume_type)
         self.number_of_turns = number_of_turns
 
     def activate(self, action: actions.ItemAction) -> None:
@@ -270,7 +277,7 @@ class ConfusionConsumable(Consumable):
 
 class MagicBook(Consumable):
     def __init__(self, mp: int, name: str, consumable: Consumable):
-        super().__init__(consumable.targetType)
+        super().__init__(consumable.targetType, ConsumableType.BOOK)
         self.mp = mp
         self.name = name
         self.consumable = consumable
@@ -315,9 +322,9 @@ class MagicBook(Consumable):
 
 
 class Combine(Consumable):
-    def __init__(self, consumables: list[Consumable]):
+    def __init__(self, consumables: list[Consumable], consume_type: ConsumableType = ConsumableType.NONE):
         target = max(consumables, key=attrgetter("targetType")).targetType
-        super().__init__(target)
+        super().__init__(target, consume_type)
         self.consumables = consumables
 
         self._parent = None

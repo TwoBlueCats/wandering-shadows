@@ -69,3 +69,16 @@ def get_render_x_pos(engine: Engine) -> int:
         return Config.overlay_right_x
     else:
         return Config.overlay_left_x
+
+
+def render_items_list(console: Console, items, equipment, x, y):
+    for i, item in enumerate(items):
+        item_key = chr(ord("a") + i)
+        is_equipped = equipment.item_is_equipped(item)
+
+        item_string = f"({item_key}) {item.name}"
+
+        if is_equipped:
+            item_string = f"{item_string} (E)"
+
+        console.print(x + 1, y + i + 1, item_string)

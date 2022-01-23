@@ -6,13 +6,14 @@ class EquipmentType(IntFlag):
     WEAPON = auto()
     ARMOR = auto()
     HELMET = auto()
+    SHIELD = auto()
 
     def get_types(self) -> list[str]:
         return list(value.name for value in self)
 
 
 @total_ordering
-class ConsumableTarget(Enum):
+class ConsumableTarget(IntFlag):
     SELF = auto()
     RANDOM = auto()
     NEAREST = auto()
@@ -22,3 +23,10 @@ class ConsumableTarget(Enum):
 
     def __gt__(self, other: "ConsumableTarget") -> bool:
         return self.value > other.value
+
+
+class ConsumableType(IntFlag):
+    NONE = auto()
+    POTION = auto()
+    SCROLL = auto()
+    BOOK = auto()

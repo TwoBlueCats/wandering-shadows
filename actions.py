@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import random
 from typing import Optional, TYPE_CHECKING
 
 import color
@@ -193,7 +194,7 @@ class MeleeAction(ActionWithDirection):
         target = self.target_actor
         if target is None:
             raise exceptions.Impossible("Nothing to attack.")
-        damage = self.entity.fighter.power - target.fighter.defense
+        damage = int(self.entity.fighter.power) - int(target.fighter.defense)
 
         attack_desc = f"{self.entity.name.capitalize()} attacks {target.name}"
         if self.entity is self.engine.player:
