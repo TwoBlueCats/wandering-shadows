@@ -1,5 +1,6 @@
+import combat
 from components.ai import HostileEnemy, BaseAI
-from components import consumable, equippable
+from components import consumable, equippable, effects
 from components.equipment import Equipment
 from components.fighter import Fighter
 from components.inventory import Inventory
@@ -7,6 +8,7 @@ from components.level import Level
 from entity import Entity, Actor, Item
 from components_types import EquipmentType, ConsumableTarget as Target, ConsumableType as Consume
 from ranged_value import Range
+from combat import Defense, DamageType, Damage
 
 
 class Factory:
@@ -63,7 +65,7 @@ orc = EnemyFactory(
     char="o",
     color=(63, 127, 63),
     name="Orc",
-    fighter=Fighter(hp=20, defense=Range(0), power=Range(3, 4)),
+    fighter=Fighter(hp=20, defense=Defense({DamageType.POISON: (Range(10), Range())}), power=Range(3, 4)),
     xp=35,
     base_floor=1,
 )
@@ -117,43 +119,80 @@ health_potion = ItemFactory(
     char="&",
     color=(127, 0, 255),
     name="Health Potion",
-    consume=consumable.HealingConsumable(target=Target.SELF, consume_type=Consume.POTION, amount=40),
+    consume=consumable.Potion(target=Target.SELF, effect=effects.HealEffect(40)),
 )
 mana_potion = ItemFactory(
     char="&",
     color=(0, 0, 255),
     name="Mana Potion",
-    consume=consumable.ManaConsumable(target=Target.SELF, amount=10, consume_type=Consume.POTION),
+    consume=consumable.Potion(target=Target.SELF, effect=effects.RestoreManaEffect(10)),
 )
 universal_potion = ItemFactory(
     char="&",
     color=(64, 0, 255),
     name="Universal Potion",
-    consume=consumable.Combine(consume_type=Consume.POTION, consumables=[
-        consumable.HealingConsumable(target=Target.SELF, amount=40),
-        consumable.ManaConsumable(target=Target.SELF, amount=20)
-    ])
+    consume=consumable.Potion(target=Target.SELF, effect=effects.Combine([
+        effects.HealEffect(amount=40),
+        effects.RestoreManaEffect(amount=20),
+    ]))
+)
+regeneration_potion = ItemFactory(
+    char="&",
+    color=(3, 192, 60),
+    name="Regeneration Potion",
+    consume=consumable.Potion(target=Target.SELF, effect=effects.AddEffect(
+        effects.DurableEffect(10, effects.HealEffect(4))
+    ))
 )
 
+poison_scroll = ItemFactory(
+    char="~",
+    color=(128, 30, 70),
+    name="Poison Scroll",
+    consume=consumable.MagicScroll(
+        target=Target.NEAREST, name="Poison", range=5,
+        effect=effects.AddEffect(
+            effects.DurableEffect(5, effects.DamageEffect(Damage(Range(2, 3), DamageType.POISON)))),
+    ),
+)
 lightning_scroll = ItemFactory(
     char="~",
     color=(255, 255, 0),
     name="Lightning Scroll",
-    consume=consumable.LightningDamageConsumable(target=Target.NEAREST, consume_type=Consume.SCROLL,
-                                                 damage=Range(10, 30), maximum_range=5),
+    consume=consumable.MagicScroll(
+        target=Target.NEAREST, name="Lightning", range=5,
+        effect=effects.DamageEffect(Damage(Range(10, 30), DamageType.LIGHTNING)),
+    ),
 )
 fireball_scroll = ItemFactory(
     char="~",
     color=(255, 0, 0),
     name="Fireball Scroll",
-    consume=consumable.FireballDamageConsumable(target=Target.RANGED, consume_type=Consume.SCROLL, damage=Range(10, 15),
-                                                radius=3),
+    consume=consumable.MagicScroll(
+        target=Target.RANGED, name="Fireball", radius=5,
+        effect=effects.Combine([
+            effects.DamageEffect(Damage(Range(10, 15), DamageType.FIRE)),
+            effects.AddConfusionEffect(1),
+        ])
+    ),
+)
+firebolt_scroll = ItemFactory(
+    char="~",
+    color=(255, 0, 0),
+    name="Firebolt Scroll",
+    consume=consumable.MagicScroll(
+        target=Target.RANDOM, name="Firebolt", range=5,
+        effect=effects.DamageEffect(Damage(Range(15, 20), DamageType.FIRE)),
+    ),
 )
 confusion_scroll = ItemFactory(
     char="~",
     color=(207, 63, 255),
     name="Confusion Scroll",
-    consume=consumable.ConfusionConsumable(target=Target.SELECTED, consume_type=Consume.SCROLL, number_of_turns=10),
+    consume=consumable.MagicScroll(
+        target=Target.RANDOM, name="Confusion", range=5,
+        effect=effects.AddConfusionEffect(10),
+    ),
 )
 
 healing_book = ItemFactory(
@@ -161,9 +200,10 @@ healing_book = ItemFactory(
     color=(127, 0, 255),
     name="Magic book: Health",
     consume=consumable.MagicBook(
+        target=Target.SELF,
         mp=20,
         name="healing",
-        consumable=consumable.HealingConsumable(target=Target.SELF, amount=40),
+        effect=effects.HealEffect(40),
     ),
 )
 lightning_book = ItemFactory(
@@ -171,9 +211,11 @@ lightning_book = ItemFactory(
     color=(255, 255, 0),
     name="Magic book: Lighting",
     consume=consumable.MagicBook(
+        target=Target.NEAREST,
         mp=30,
         name="lightning",
-        consumable=consumable.LightningDamageConsumable(target=Target.NEAREST, damage=Range(20, 35), maximum_range=4),
+        effect=effects.DamageEffect(Damage(Range(25, 30), DamageType.LIGHTNING)),
+        range=4
     ),
 )
 fireball_book = ItemFactory(
@@ -181,9 +223,14 @@ fireball_book = ItemFactory(
     color=(255, 0, 0),
     name="Magic book: Fireball",
     consume=consumable.MagicBook(
+        target=Target.RANGED,
         mp=40,
         name="fireball",
-        consumable=consumable.FireballDamageConsumable(target=Target.RANGED, damage=Range(25, 35), radius=3),
+        effect=effects.Combine([
+            effects.DamageEffect(Damage(Range(25, 35), DamageType.FIRE)),
+            effects.AddConfusionEffect(1),
+        ]),
+        radius=3
     ),
 )
 confusion_book = ItemFactory(
@@ -191,9 +238,10 @@ confusion_book = ItemFactory(
     color=(207, 63, 255),
     name="Magic book: Confusion",
     consume=consumable.MagicBook(
+        target=Target.SELECTED,
         mp=20,
         name="confusion",
-        consumable=consumable.ConfusionConsumable(target=Target.SELECTED, number_of_turns=5),
+        effect=effects.AddConfusionEffect(5)
     ),
 )
 
@@ -236,4 +284,11 @@ shield = ItemFactory(
     color=(139, 69, 19),
     name="Shield",
     equip=equippable.Equippable(equipment_type=EquipmentType.SHIELD, defense_bonus=Range(2, 4)),
+)
+red_necklace = ItemFactory(
+    char=",",
+    color=(139, 20, 20),
+    name="Red necklace",
+    equip=equippable.Equippable(equipment_type=EquipmentType.NECKLACE,
+                                defense_bonus=Defense({DamageType.FIRE: (Range(10), Range(0))})),
 )

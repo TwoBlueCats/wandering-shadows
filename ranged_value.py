@@ -5,7 +5,7 @@ from typing import Union
 
 
 class Range:
-    def __init__(self, value, stop=None):
+    def __init__(self, value=0, stop=None):
         self._value = value
         self._stop = stop or value
 

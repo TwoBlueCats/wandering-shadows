@@ -9,6 +9,7 @@ import actions
 import color
 import components.ai
 import components.inventory
+from components import effects
 from components.base_component import BaseComponent
 from exceptions import Impossible
 from input_handlers import SingleRangedAttackHandler, AreaRangedAttackHandler, ActionOrHandler
@@ -131,204 +132,32 @@ class Consumable(BaseComponent):
     def description(self) -> list[str]:
         raise NotImplementedError()
 
-
-class HealingConsumable(Consumable):
-    def __init__(self, target: ConsumableTarget, amount: int, consume_type: ConsumableType = ConsumableType.NONE):
-        super().__init__(target, consume_type)
-        self.amount = amount
-
-    def activate(self, action: actions.ItemAction) -> None:
-        was = False
-        for target in self._targets:
-            amount_recovered = target.fighter.heal(self.amount)
-            if amount_recovered > 0:
-                was = True
-                if target == self.engine.player:
-                    self.engine.message_log.add_message(
-                        f"You consume the {self.parent.name}, and recover {amount_recovered} HP!",
-                        color.health_recovered,
-                    )
-        if was:
-            self.consume()
-        else:
-            raise Impossible(f"Targets' health is already full.")
-
-    def description(self) -> list[str]:
-        return [f"Heal amount: {self.amount}"]
-
-
-class ManaConsumable(Consumable):
-    def __init__(self, target: ConsumableTarget, amount: int, consume_type: ConsumableType = ConsumableType.NONE):
-        super().__init__(target, consume_type)
-        self.amount = amount
-
-    def activate(self, action: actions.ItemAction) -> None:
-        was = False
-        for target in self._targets:
-            amount_recovered = target.fighter.restore_mana(self.amount)
-            if amount_recovered > 0:
-                was = True
-                if target == self.engine.player:
-                    self.engine.message_log.add_message(
-                        f"You consume the {self.parent.name}, and recover {amount_recovered} MP!",
-                        color.health_recovered,
-                    )
-        if was:
-            self.consume()
-        else:
-            raise Impossible(f"Targets' mana is already full.")
-
-    def description(self) -> list[str]:
-        return [f"Mana restore: {self.amount}"]
-
-
-class LightningDamageConsumable(Consumable):
-    def __init__(self, target: ConsumableTarget, damage: Range, maximum_range: int,
-                 consume_type: ConsumableType = ConsumableType.NONE):
-        super().__init__(target, consume_type)
-        self.damage = damage
-        self.maximum_range = maximum_range
-
     @property
-    def range(self) -> int:
-        return self.maximum_range
-
-    def activate(self, action: actions.ItemAction) -> None:
-        for target in self._targets:
-            damage = int(self.damage)
-            target.fighter.take_damage(damage)
-            self.engine.message_log.add_message(
-                f"A lighting bolt strikes the {target.name} with a loud thunder, for {damage} damage!"
-            )
-
-        if len(self._targets) > 0:
-            self.consume()
-        else:
-            raise Impossible("No enemy is close enough to strike.")
-
-    def description(self) -> list[str]:
-        return [f"Power: {self.damage}",
-                f"Range: {self.maximum_range}"]
-
-
-class FireballDamageConsumable(Consumable):
-    def __init__(self, target: ConsumableTarget, damage: Range, radius: int,
-                 consume_type: ConsumableType = ConsumableType.NONE):
-        super().__init__(target, consume_type)
-        self.damage = damage
-        self._radius = radius
-
-    @property
-    def radius(self) -> int:
-        return self._radius
-
-    def activate(self, action: actions.ItemAction) -> None:
-        if not self.engine.game_map.visible[action.target_xy]:
-            raise Impossible("You cannot target an area that you cannot see.")
-
-        for target in self._targets:
-            damage = int(self.damage)
-            target.fighter.take_damage(damage)
-            self.engine.message_log.add_message(
-                f"The {target.name} is engulfed in a fiery explosion, taking {damage} damage!"
-            )
-
-        if len(self._targets) > 0:
-            self.consume()
-        else:
-            raise Impossible("No enemy in range.")
-
-    def description(self) -> list[str]:
-        return [f"Power: {self.damage}",
-                f"Radius: {self.radius}"]
-
-
-class ConfusionConsumable(Consumable):
-    def __init__(self, target: ConsumableTarget, number_of_turns: int,
-                 consume_type: ConsumableType = ConsumableType.NONE):
-        super().__init__(target, consume_type)
-        self.number_of_turns = number_of_turns
-
-    def activate(self, action: actions.ItemAction) -> None:
-        if not self.engine.game_map.visible[action.target_xy]:
-            raise Impossible("You cannot target an area that you cannot see.")
-
-        was = False
-        for target in self._targets:
-            if target is action.entity:
-                continue
-            was = True
-            target.ai = components.ai.ConfusedEnemy(
-                entity=target, previous_ai=target.ai, turns_remaining=self.number_of_turns,
-            )
-            self.engine.message_log.add_message(
-                f"The eyes of the {target.name} look vacant, as it starts to stumble around!",
-                color.status_effect_applied,
-            )
-
-        if was:
-            self.consume()
-        else:
-            raise Impossible("No enemy is close enough to confuse.")
-
-    def description(self) -> list[str]:
-        return [f"Turns: {self.number_of_turns}"]
-
-
-class MagicBook(Consumable):
-    def __init__(self, mp: int, name: str, consumable: Consumable):
-        super().__init__(consumable.targetType, ConsumableType.BOOK)
-        self.mp = mp
-        self.name = name
-        self.consumable = consumable
-
-        self.consumable.consume = self.consume
-        self._parent = None
-        self._consumer = None
-
-    @property
-    def parent(self):
-        return self._parent
-
-    @parent.setter
-    def parent(self, value: Item) -> None:
-        self._parent = value
-        self.consumable.parent = value
-
-    def consume(self) -> None:
-        self._consumer.fighter.use_mana(self.mp)
-
-    def get_action(self, consumer: Actor) -> Optional[ActionOrHandler]:
-        if consumer.fighter.mp < self.mp:
-            self.engine.message_log.add_message(
-                f"Not enough mana to use this book, you need {self.mp} MP",
-                color.mp_use
-            )
-            return None
-        self.engine.message_log.add_message(
-            f"You use {self.mp} MP and cast {self.name} spell",
-            color.mp_use
-        )
-        self._consumer = consumer
-        return self.consumable.get_action(consumer)
-
-    def activate(self, action: actions.ItemAction) -> None:
-        self.consumable.activate(action)
-
-    def description(self) -> list[str]:
-        data = [f"Mana usage: {self.mp}"]
-        data.extend(self.consumable.description())
-        return data
+    def name(self) -> str:
+        return self.parent.name
 
 
 class Combine(Consumable):
     def __init__(self, consumables: list[Consumable], consume_type: ConsumableType = ConsumableType.NONE):
-        target = max(consumables, key=attrgetter("targetType")).targetType
-        super().__init__(target, consume_type)
+        target = max(consumables, key=attrgetter("targetType"))
+        super().__init__(target.targetType, consume_type)
+        self._radius = getattr(target, "radius", 0)
+        self._range = getattr(target, "range", 0)
         self.consumables = consumables
 
         self._parent = None
         self._consumer = None
+
+        if any(type(consume).get_action != Consumable.get_action for consume in consumables):
+            raise Impossible("BAD")
+
+    @property
+    def range(self) -> int:
+        return self._range
+
+    @property
+    def radius(self) -> int:
+        return self._radius
 
     @property
     def parent(self):
@@ -355,3 +184,108 @@ class Combine(Consumable):
 
     def description(self) -> list[str]:
         return list(chain.from_iterable(consume.description() for consume in self.consumables))
+
+
+class MagicScroll(Consumable):
+    def __init__(self, target: ConsumableTarget, name: str, effect: effects.Effect,
+                 range: int = 0, radius: int = 0):
+        super().__init__(target, ConsumableType.SCROLL)
+        self._name = name
+        self.effect = effect
+        self.effect.parent = self
+
+        self._range = range
+        self._radius = radius
+
+    @property
+    def range(self) -> int:
+        return self._range
+
+    @property
+    def radius(self) -> int:
+        return self._radius
+
+    def activate(self, action: actions.ItemAction) -> None:
+        was = False
+        for target in self._targets:
+            was |= self.effect.apply(target, True)
+        if was:
+            self.consume()
+        else:
+            raise Impossible(f"{self.name} does not affect")
+
+    def description(self) -> list[str]:
+        return self.effect.describe()
+
+
+class MagicBook(Consumable):
+    def __init__(self, target: ConsumableTarget, name: str, effect: effects.Effect, mp: int,
+                 range: int = 0, radius: int = 0):
+        super().__init__(target, ConsumableType.BOOK)
+        self._name = name
+        self.effect = effect
+        self.effect.parent = self
+        self.mp = mp
+
+        self._range = range
+        self._radius = radius
+
+        self._consumer: Optional[Actor] = None
+
+    @property
+    def range(self) -> int:
+        return self._range
+
+    @property
+    def radius(self) -> int:
+        return self._radius
+
+    def activate(self, action: actions.ItemAction) -> None:
+        was = False
+        for target in self._targets:
+            was |= self.effect.apply(target, True)
+        if was:
+            self.consume()
+        else:
+            raise Impossible(f"{self.name} does not affect")
+
+    def description(self) -> list[str]:
+        data = [f"Mana usage: {self.mp}"]
+        data.extend(self.effect.describe())
+        return data
+
+    def consume(self) -> None:
+        self._consumer.fighter.use_mana(self.mp)
+
+    def get_action(self, consumer: Actor) -> Optional[ActionOrHandler]:
+        if consumer.fighter.mp < self.mp:
+            self.engine.message_log.add_message(
+                f"Not enough mana to use this book, you need {self.mp} MP",
+                color.mp_use
+            )
+            return None
+        self.engine.message_log.add_message(
+            f"You use {self.mp} MP and cast {self._name} spell",
+            color.mp_use
+        )
+        self._consumer = consumer
+        return super().get_action(consumer)
+
+
+class Potion(Consumable):
+    def __init__(self, target: ConsumableTarget, effect: effects.Effect):
+        super().__init__(target, ConsumableType.POTION)
+        self.effect = effect
+        self.effect.parent = self
+
+    def activate(self, action: actions.ItemAction) -> None:
+        was = False
+        for target in self._targets:
+            was |= self.effect.apply(target, True)
+        if was:
+            self.consume()
+        else:
+            raise Impossible(f"{self.name} does not affect")
+
+    def description(self) -> list[str]:
+        return self.effect.describe()

@@ -7,6 +7,7 @@ class EquipmentType(IntFlag):
     ARMOR = auto()
     HELMET = auto()
     SHIELD = auto()
+    NECKLACE = auto()
 
     def get_types(self) -> list[str]:
         return list(value.name for value in self)

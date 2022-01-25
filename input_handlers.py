@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from itertools import chain
 from typing import Optional, Type, TYPE_CHECKING, Callable, Union
 
 import tcod.event
@@ -21,6 +22,7 @@ import color
 import exceptions
 from config import Config
 from components_types import ConsumableType
+from combat import DamageType, DefenseType
 
 if TYPE_CHECKING:
     from engine import Engine
@@ -145,12 +147,12 @@ class EventHandler(BaseEventHandler):
         """
         if action is None:
             return False
-
+        affected = action.entity.apply()
         try:
             action.perform()
         except exceptions.Impossible as exc:
             self.engine.message_log.add_message(exc.args[0], color.impossible)
-            return False  # Skip enemy turn on exceptions.
+            return affected  # Skip enemy turn on exceptions.
 
         self.engine.handle_enemy_turns()
 
@@ -203,11 +205,29 @@ class CharacterScreenEventHandler(AskUserEventHandler):
         y = Config.data_top_y
         width = Config.overlay_width
 
+        player = self.engine.player
+        messages = [
+            f"Level: {player.level.current_level}",
+            ""
+            f"XP: {player.level.current_xp}",
+            f"XP for next Level: {player.level.experience_to_next_level}",
+            "",
+            f"Attack: {player.fighter.power}",
+            "",
+            "Defense:",
+            *player.fighter.defense.describe(),
+            "",
+            f"Inventory: {len(player.inventory.items)}/{player.inventory.capacity}"
+        ]
+        if player.effects:
+            messages.extend(("", "Effects:"))
+            messages.extend(chain.from_iterable(effect.describe() for effect in player.effects))
+
         console.draw_frame(
             x=x,
             y=y,
             width=width,
-            height=11,
+            height=len(messages) + 2,
             title=self.TITLE,
             clear=True,
             fg=color.white,
@@ -215,27 +235,7 @@ class CharacterScreenEventHandler(AskUserEventHandler):
         )
 
         console.print(
-            x=x + 1, y=y + 1, string=f"Level: {self.engine.player.level.current_level}"
-        )
-        console.print(
-            x=x + 1, y=y + 3, string=f"XP: {self.engine.player.level.current_xp}"
-        )
-        console.print(
-            x=x + 1,
-            y=y + 4,
-            string=f"XP for next Level: {self.engine.player.level.experience_to_next_level}",
-        )
-
-        console.print(
-            x=x + 1, y=y + 6, string=f"Attack: {self.engine.player.fighter.power_str}"
-        )
-        console.print(
-            x=x + 1, y=y + 7, string=f"Defense: {self.engine.player.fighter.defense_str}"
-        )
-        console.print(
-            x=x + 1,
-            y=y + 9,
-            string=f"Inventory: {len(self.engine.player.inventory.items)}/{self.engine.player.inventory.capacity}"
+            x=x + 1, y=y + 1, string="\n".join(messages)
         )
 
 
@@ -385,7 +385,7 @@ class LevelUpEventHandler(AskUserEventHandler):
         console.print(
             x=x + 1,
             y=y + 7,
-            string=f"d) Agility (+1 defense, from {self.engine.player.fighter.base_defense})",
+            string=f"d) Agility (+1 defense, from {self.engine.player.fighter.base_defense[DamageType.DEFAULT][1]})",
         )
 
     def ev_keydown(self, event: tcod.event.KeyDown) -> Optional[ActionOrHandler]:

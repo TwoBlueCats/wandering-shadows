@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Optional
 from components.base_component import BaseComponent
 from components_types import EquipmentType
 from ranged_value import Range
+from combat import Damage, DamageType, Defense, DefenseType
 
 if TYPE_CHECKING:
     from entity import Actor, Item
@@ -17,8 +18,8 @@ class Equipment(BaseComponent):
         self.items: dict[EquipmentType, Item] = items or {}
 
     @property
-    def defense_bonus(self) -> Range:
-        bonus = Range(0)
+    def defense_bonus(self) -> Defense:
+        bonus = Defense()
         for item in self.items.values():
             if item.equippable is not None:
                 bonus += item.equippable.defense_bonus

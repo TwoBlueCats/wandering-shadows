@@ -29,6 +29,7 @@ class Engine:
 
     def handle_enemy_turns(self) -> None:
         for entity in set(self.game_map.actors) - {self.player}:
+            entity.apply()
             if entity.ai:
                 try:
                     entity.ai.perform()

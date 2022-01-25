@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import math
+from itertools import chain
 from typing import Optional, Type, TypeVar, TYPE_CHECKING, Union
 
 from render_order import RenderOrder
@@ -14,6 +15,7 @@ if TYPE_CHECKING:
     from components.fighter import Fighter
     from components.inventory import Inventory
     from components.level import Level
+    from components.effects import Effect
     from game_map import GameMap
 
 T = TypeVar("T", bound="Entity")
@@ -138,6 +140,8 @@ class Actor(Entity):
         self.level = level
         self.level.parent = self
 
+        self.effects: list[Effect] = []
+
     @property
     def is_alive(self) -> bool:
         """Returns True as long as this actor can perform actions."""
@@ -152,8 +156,26 @@ class Actor(Entity):
         if self.is_alive:
             messages.append("")
             messages.extend(self.fighter.description())
+            if self.effects:
+                messages.append("")
+                messages.append("Effects:")
+                messages.extend(chain.from_iterable(effect.describe() for effect in self.effects))
 
         return messages
+
+    def add_effect(self, effect: Effect):
+        effect.parent = self
+        self.effects.append(effect)
+
+    def apply(self):
+        if not self.is_alive:
+            return False
+
+        was = len(self.effects) != 0
+        for effect in self.effects:
+            effect.apply(self, False)
+
+        return was
 
 
 class Item(Entity):

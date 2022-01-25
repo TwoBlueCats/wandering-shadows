@@ -5,23 +5,27 @@ from typing import TYPE_CHECKING, Union
 import color
 from components.base_component import BaseComponent
 from render_order import RenderOrder
+from ranged_value import Range
+from combat import Damage, DamageType, Defense, DefenseType
 
 if TYPE_CHECKING:
     from entity import Actor
-    from ranged_value import Range
 
 
 class Fighter(BaseComponent):
     parent: Actor
 
-    def __init__(self, hp: int, defense: Range, power: Range, mp: int = 0):
+    def __init__(self, hp: int, defense: Union[Defense, Range], power: Range, mp: int = 0):
         self.max_hp = hp
         self._hp = hp
 
         self.max_mp = mp
         self._mp = mp
 
-        self.base_defense = defense
+        if isinstance(defense, Defense):
+            self.base_defense: Defense = defense
+        else:
+            self.base_defense: Defense = Defense({DamageType.DEFAULT: (Range(), defense or Range())})
         self.base_power = power
 
     @property
@@ -35,7 +39,7 @@ class Fighter(BaseComponent):
             self.die()
 
     @property
-    def defense(self) -> Range:
+    def defense(self) -> Defense:
         return self.base_defense + self.defense_bonus
 
     @property
@@ -43,11 +47,11 @@ class Fighter(BaseComponent):
         return self.base_power + self.power_bonus
 
     @property
-    def defense_bonus(self) -> Range:
+    def defense_bonus(self) -> Defense:
         if self.parent.equipment:
             return self.parent.equipment.defense_bonus
         else:
-            return Range(0)
+            return Defense()
 
     @property
     def power_bonus(self) -> Range:
@@ -55,20 +59,6 @@ class Fighter(BaseComponent):
             return self.parent.equipment.power_bonus
         else:
             return Range(0)
-
-    @property
-    def power_str(self) -> str:
-        result = f"{self.base_power}"
-        if self.power_bonus != 0:
-            result += f" (+{self.power_bonus})"
-        return result
-
-    @property
-    def defense_str(self) -> str:
-        result = f"{self.base_defense}"
-        if self.defense_bonus != 0:
-            result += f" (+{self.defense_bonus})"
-        return result
 
     @property
     def mp(self) -> int:
@@ -110,12 +100,15 @@ class Fighter(BaseComponent):
         self.hp += amount
         return self.hp - before
 
-    def take_damage(self, amount: int) -> None:
+    def take_damage(self, amount: int) -> bool:
         if self.parent.is_alive:
             self.hp -= amount
+            return True
+        return False
 
     def description(self) -> list[str]:
         return [f"HP: {self.hp}",
                 f"Power: {self.power}",
-                f"Defense: {self.defense}",
+                f"Defense:",
+                *self.defense.describe()
                 ]
