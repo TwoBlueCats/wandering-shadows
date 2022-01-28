@@ -14,6 +14,7 @@ class DamageType(IntFlag):
     FIRE = auto()
     LIGHTNING = auto()
     POISON = auto()
+    ABSOLUTE = auto()
 
     DEFAULT = PHYSICAL
 
@@ -46,9 +47,11 @@ class Defense:
         if isinstance(value, Damage):
             key = value.type
             value = value.value
+        if key == DamageType.ABSOLUTE:
+            return int(value)
         value = int(value)
         defense = self.defense.get(key) or [0, 0]
-        return math.ceil(value * 100 / (100 - int(defense[DefenseType.PERCENT])) - int(defense[DefenseType.ABSOLUT]))
+        return round(value * 100 / (100 - int(defense[DefenseType.PERCENT])) - int(defense[DefenseType.ABSOLUT]))
 
     def __add__(self, other: Union[Defense, tuple[Range, Range], Range, int]) -> Defense:
         defense = copy.deepcopy(self)

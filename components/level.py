@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Union
 import random
 
 from components.base_component import BaseComponent
+from ranged_value import Range
 
 if TYPE_CHECKING:
     from entity import Actor
@@ -68,32 +69,16 @@ class Level(BaseComponent):
 
         self.increase_level()
 
-    def increase_power(self, amount: int = 1, log: bool = True) -> None:
-        self.parent.fighter.base_power += amount
+    def increase_power(self, amount: Union[Range, int] = None, log: bool = True) -> None:
+        self.parent.fighter.base_power += amount if amount is not None else Range(1)
         if log:
             self.engine.message_log.add_message("You feel stronger!")
 
         self.increase_level()
 
-    def increase_defense(self, amount: int = 1, log: bool = True) -> None:
-        self.parent.fighter.base_defense += amount
+    def increase_defense(self, amount: Union[Range, int] = None, log: bool = True) -> None:
+        self.parent.fighter.base_defense += amount if amount is not None else Range(1)
         if log:
             self.engine.message_log.add_message("Your movements are getting swifter!")
 
         self.increase_level()
-
-    def auto_level_up(self, amount: int, hp: int, mp: int, pw: int, df: int) -> int:
-        values = []
-        if hp > 0:
-            values.append(lambda: self.increase_max_hp(amount=hp, log=False))
-        if mp > 0:
-            values.append(lambda: self.increase_max_mp(amount=mp, log=False))
-        if pw > 0:
-            values.append(lambda: self.increase_power(amount=pw, log=False))
-        if df > 0:
-            values.append(lambda: self.increase_defense(amount=df, log=False))
-        for _ in range(amount):
-            random.choice(values)()
-            self.xp_given += int(self.xp_given * 0.05)
-
-        return self.current_level

@@ -77,9 +77,14 @@ class DamageEffect(Effect):
                 f"No damage for {actor.name}"
             )
             return False
-        engine.message_log.add_message(
-            f"{self.parent.name} strike {actor.name} with {self.damage.type.name.lower()} damage {value}"
-        )
+        if self.parent != actor:
+            engine.message_log.add_message(
+                f"{self.parent.name} strike {actor.name} with {self.damage.type.name.lower()} damage {value}"
+            )
+        else:
+            engine.message_log.add_message(
+                f"{self.parent.name} takes {self.damage.type.name.lower()} damage {value}"
+            )
         return actor.fighter.take_damage(value)
 
     def describe(self) -> list[str]:

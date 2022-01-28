@@ -63,7 +63,8 @@ class Equipment(BaseComponent):
 
     def toggle_equip(self, item: Item, add_message: bool = True) -> None:
         if not item.equippable:
-            self.parent.game_map.engine.message_log.add_message(f"You can not equip the {item.name}.")
+            if add_message:
+                self.parent.game_map.engine.message_log.add_message(f"You can not equip the {item.name}.")
             return
         slot = item.equippable.equipment_type
 

@@ -311,7 +311,7 @@ class ControlScreenEventHandler(AskUserEventHandler):
 
         x = Config.overlay_right_x
         y = 0
-        height = 7
+        height = 11
         console.draw_frame(
             x=x,
             y=y,
@@ -325,8 +325,12 @@ class ControlScreenEventHandler(AskUserEventHandler):
         console.print(x=x + 1, y=y + 1, string=f"Press key g to pick up item")
         console.print(x=x + 1, y=y + 2, string=f"Press key i to use inventory items")
         console.print(x=x + 1, y=y + 3, string=f"Press key d to drop inventory items")
-        console.print(x=x + 1, y=y + 4, string=f"Press key a-z to select inventory item")
-        console.print(x=x + 1, y=y + 5, string=f"Press any other key to exit")
+        console.print(x=x + 1, y=y + 4, string=f"Press key e to explore inventory items")
+        console.print(x=x + 1, y=y + 5, string=f"Press key m to see only magic inventory items")
+        console.print(x=x + 1, y=y + 6, string=f"Press key p to see only potions")
+        console.print(x=x + 1, y=y + 7, string=f"Press key q to see only equipment inventory items")
+        console.print(x=x + 1, y=y + 8, string=f"Press key a-z to select inventory item")
+        console.print(x=x + 1, y=y + 9, string=f"Press any other key to exit")
 
         y += height + 1
         height = 4

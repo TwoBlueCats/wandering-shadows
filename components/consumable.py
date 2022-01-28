@@ -23,10 +23,25 @@ if TYPE_CHECKING:
 class Consumable(BaseComponent):
     parent: Item
 
-    def __init__(self, target: ConsumableTarget, consume_type: ConsumableType = ConsumableType.NONE):
+    def __init__(self, target: ConsumableTarget, consume_type: ConsumableType = ConsumableType.NONE,
+                 effect: Optional[effects.Effect] = None, range: int = 0, radius: int = 0):
         self.targetType = target
         self.consumeType = consume_type
         self._targets: Optional[list[Actor]] = None
+        self.effect = effect
+        if self.effect is not None:
+            self.effect.parent = self
+
+        self._range = range
+        self._radius = radius
+
+    @property
+    def range(self) -> int:
+        return self._range
+
+    @property
+    def radius(self) -> int:
+        return self._radius
 
     def get_action(self, consumer: Actor) -> Optional[ActionOrHandler]:
         """Try to return the action for this item."""
@@ -68,14 +83,6 @@ class Consumable(BaseComponent):
             case _:
                 return actions.ImpossibleAction(consumer)
 
-    @property
-    def radius(self) -> int:
-        return 0
-
-    @property
-    def range(self) -> int:
-        return 0
-
     def _get_nearest_target(self, consumer: Actor) -> list[Actor]:
         target = None
         closest_distance = self.range + 1.0
@@ -116,11 +123,14 @@ class Consumable(BaseComponent):
         return targets
 
     def activate(self, action: actions.ItemAction) -> None:
-        """Invoke this item's ability.
-
-        `action` is the context for this activation.
-        """
-        raise NotImplementedError()
+        was = False
+        for target in self._targets:
+            if self.effect is not None:
+                was |= self.effect.apply(target, True)
+        if was:
+            self.consume()
+        else:
+            raise Impossible(f"{self.name} does not affect")
 
     def consume(self) -> None:
         """Remove the consumed item from its containing inventory."""
@@ -130,7 +140,7 @@ class Consumable(BaseComponent):
             inventory.items.remove(entity)
 
     def description(self) -> list[str]:
-        raise NotImplementedError()
+        return self.effect.describe()
 
     @property
     def name(self) -> str:
@@ -140,7 +150,7 @@ class Consumable(BaseComponent):
 class Combine(Consumable):
     def __init__(self, consumables: list[Consumable], consume_type: ConsumableType = ConsumableType.NONE):
         target = max(consumables, key=attrgetter("targetType"))
-        super().__init__(target.targetType, consume_type)
+        super().__init__(target.targetType, consume_type, effects.Combine([consume.effect for consume in consumables]))
         self._radius = getattr(target, "radius", 0)
         self._range = getattr(target, "range", 0)
         self.consumables = consumables
@@ -150,14 +160,6 @@ class Combine(Consumable):
 
         if any(type(consume).get_action != Consumable.get_action for consume in consumables):
             raise Impossible("BAD")
-
-    @property
-    def range(self) -> int:
-        return self._range
-
-    @property
-    def radius(self) -> int:
-        return self._radius
 
     @property
     def parent(self):
@@ -189,30 +191,11 @@ class Combine(Consumable):
 class MagicScroll(Consumable):
     def __init__(self, target: ConsumableTarget, name: str, effect: effects.Effect,
                  range: int = 0, radius: int = 0):
-        super().__init__(target, ConsumableType.SCROLL)
+        super().__init__(target, ConsumableType.SCROLL, effect)
         self._name = name
-        self.effect = effect
-        self.effect.parent = self
 
         self._range = range
         self._radius = radius
-
-    @property
-    def range(self) -> int:
-        return self._range
-
-    @property
-    def radius(self) -> int:
-        return self._radius
-
-    def activate(self, action: actions.ItemAction) -> None:
-        was = False
-        for target in self._targets:
-            was |= self.effect.apply(target, True)
-        if was:
-            self.consume()
-        else:
-            raise Impossible(f"{self.name} does not affect")
 
     def description(self) -> list[str]:
         return self.effect.describe()
@@ -221,33 +204,14 @@ class MagicScroll(Consumable):
 class MagicBook(Consumable):
     def __init__(self, target: ConsumableTarget, name: str, effect: effects.Effect, mp: int,
                  range: int = 0, radius: int = 0):
-        super().__init__(target, ConsumableType.BOOK)
+        super().__init__(target, ConsumableType.BOOK, effect)
         self._name = name
-        self.effect = effect
-        self.effect.parent = self
         self.mp = mp
 
         self._range = range
         self._radius = radius
 
         self._consumer: Optional[Actor] = None
-
-    @property
-    def range(self) -> int:
-        return self._range
-
-    @property
-    def radius(self) -> int:
-        return self._radius
-
-    def activate(self, action: actions.ItemAction) -> None:
-        was = False
-        for target in self._targets:
-            was |= self.effect.apply(target, True)
-        if was:
-            self.consume()
-        else:
-            raise Impossible(f"{self.name} does not affect")
 
     def description(self) -> list[str]:
         data = [f"Mana usage: {self.mp}"]
@@ -274,18 +238,9 @@ class MagicBook(Consumable):
 
 class Potion(Consumable):
     def __init__(self, target: ConsumableTarget, effect: effects.Effect):
-        super().__init__(target, ConsumableType.POTION)
+        super().__init__(target, ConsumableType.POTION, effect)
         self.effect = effect
         self.effect.parent = self
-
-    def activate(self, action: actions.ItemAction) -> None:
-        was = False
-        for target in self._targets:
-            was |= self.effect.apply(target, True)
-        if was:
-            self.consume()
-        else:
-            raise Impossible(f"{self.name} does not affect")
 
     def description(self) -> list[str]:
         return self.effect.describe()

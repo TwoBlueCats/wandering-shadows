@@ -5,13 +5,15 @@ from typing import Iterator, TYPE_CHECKING
 
 import tcod
 
-import entity_factories
+import entities.enemies
+import entities.equipment
+import entities.items
 from game_map import GameMap
 import tile_types
 
 if TYPE_CHECKING:
     from engine import Engine
-    from entity_factories import Factory
+    from entities.factory import Factory
 
 max_items_by_floor = [
     (1, 1),
@@ -26,45 +28,50 @@ max_monsters_by_floor = [
 
 item_chances: dict[int, list[tuple[Factory, int]]] = {
     0: [
-        (entity_factories.health_potion, 35),
-        (entity_factories.mana_potion, 10),
-        (entity_factories.healing_book, 1),
+        (entities.items.health_potion, 35),
+        (entities.items.mana_potion, 10),
+        (entities.items.healing_book, 1),
     ],
     2: [
-        (entity_factories.confusion_scroll, 10),
-        (entity_factories.healing_book, 10),
+        (entities.items.confusion_scroll, 10),
+        (entities.items.healing_book, 10),
+        (entities.items.regeneration_potion, 1),
     ],
     4: [
-        (entity_factories.lightning_scroll, 25),
-        (entity_factories.sword, 15),
-        (entity_factories.healing_book, 20),
-        (entity_factories.confusion_book, 20),
-        (entity_factories.firebolt_scroll, 20),
-        (entity_factories.regeneration_potion, 10),
+        (entities.items.lightning_scroll, 25),
+        (entities.equipment.sword, 15),
+        (entities.items.healing_book, 20),
+        (entities.items.confusion_book, 20),
+        (entities.items.firebolt_scroll, 20),
+        (entities.items.regeneration_potion, 10),
+    ],
+    5: [
+        (entities.items.poison_scroll, 10),
     ],
     6: [
-        (entity_factories.mana_potion, 35),
-        (entity_factories.fireball_scroll, 25),
-        (entity_factories.chain_mail, 15),
-        (entity_factories.lightning_book, 10),
-        (entity_factories.universal_potion, 30),
+        (entities.items.mana_potion, 35),
+        (entities.items.fireball_scroll, 25),
+        (entities.equipment.chain_mail, 15),
+        (entities.items.lightning_book, 10),
+        (entities.items.universal_potion, 30),
     ],
     8: [
-        (entity_factories.fireball_book, 10),
-        (entity_factories.helmet, 10),
-        (entity_factories.red_necklace, 10),
+        (entities.items.fireball_book, 10),
+        (entities.equipment.helmet, 10),
+        (entities.equipment.red_necklace, 10),
     ],
     10: [
-        (entity_factories.shield, 10),
-        (entity_factories.health_potion, 10),
+        (entities.equipment.shield, 10),
+        (entities.items.health_potion, 10),
+        (entities.items.regeneration_potion, 20),
     ],
 }
 
 enemy_chances: dict[int, list[tuple[Factory, int]]] = {
-    0: [(entity_factories.orc, 80), (entity_factories.goblin, 20)],
-    3: [(entity_factories.troll, 5), (entity_factories.goblin, 40)],
-    5: [(entity_factories.troll, 30), (entity_factories.goblin, 80)],
-    7: [(entity_factories.troll, 60)],
+    0: [(entities.enemies.orc, 80), (entities.enemies.goblin, 20)],
+    3: [(entities.enemies.troll, 5), (entities.enemies.goblin, 40)],
+    5: [(entities.enemies.troll, 30), (entities.enemies.goblin, 80)],
+    7: [(entities.enemies.troll, 60)],
 }
 
 

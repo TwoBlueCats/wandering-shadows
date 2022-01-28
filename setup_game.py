@@ -10,9 +10,11 @@ from typing import Optional
 import tcod
 
 import color
+import entities.equipment
+import entities.items
+import entities.player
 from config import Config
 from engine import Engine
-import entity_factories
 from game_map import GameWorld
 import input_handlers
 
@@ -23,7 +25,7 @@ background_image = tcod.image.load(Config.menu_bg_image)[:, :, :3]
 def new_game() -> Engine:
     """Return a brand new game session as an Engine instance."""
 
-    player = copy.deepcopy(entity_factories.player)
+    player = copy.deepcopy(entities.player.player)
 
     engine = Engine(player=player)
 
@@ -42,17 +44,21 @@ def new_game() -> Engine:
         "Hello and welcome, adventurer, to yet another dungeon!", color.welcome_text
     )
 
-    dagger = entity_factories.dagger.construct(0)
-    leather_armor = entity_factories.leather_armor.construct(0)
+    dagger = entities.equipment.dagger.construct(0)
+    leather_armor = entities.equipment.leather_armor.construct(0)
+    healing = entities.items.health_potion.construct(0)
 
     dagger.parent = player.inventory
     leather_armor.parent = player.inventory
+    healing.parent = player.inventory
 
     player.inventory.items.append(dagger)
     player.equipment.toggle_equip(dagger, add_message=False)
 
     player.inventory.items.append(leather_armor)
     player.equipment.toggle_equip(leather_armor, add_message=False)
+
+    player.inventory.items.append(healing)
 
     return engine
 
