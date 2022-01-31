@@ -167,13 +167,16 @@ class Actor(Entity):
         effect.parent = self
         self.effects.append(effect)
 
-    def apply(self):
+    def apply_effects(self):
         if not self.is_alive:
             return False
 
         was = len(self.effects) != 0
         for effect in self.effects:
             effect.apply(self, False)
+
+        if self.parent.engine.turn - self.fighter.mana_decrease_turn > self.fighter.mana_regen_turns:
+            self.fighter.restore_mana(round(self.fighter.max_mp * self.fighter.mana_regen_percent / 100, 2))
 
         return was
 

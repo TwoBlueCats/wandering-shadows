@@ -13,45 +13,45 @@ if TYPE_CHECKING:
 
 
 def orc_level_up(enemy: Actor, floor: int, _):
-    base_hp = enemy.fighter.max_hp
+    base_hp = int(enemy.fighter.max_hp)
     for level in range(3, floor + math.ceil(floor / 10)):
         match (level + random.randint(-1, 1)) % 3:
             case 0:
                 enemy.level.increase_max_hp(base_hp // 5, log=False)
             case 1:
-                enemy.level.increase_defense(Range(1, 1 + (random.random() > 1 / 4)), log=False)
+                enemy.level.increase_defense(Range(2, 2 + (random.random() > 1 / 4)), log=False)
             case 2:
-                enemy.level.increase_power(Range(1, 1 + (random.random() > 1 / 3)), log=False)
+                enemy.level.increase_power(Range(2, 2 + (random.random() > 1 / 4)), log=False)
 
 
 def goblin_level_up(enemy: Actor, floor: int, _):
-    base_hp = enemy.fighter.max_hp
+    base_hp = int(enemy.fighter.max_hp)
     for level in range(3, floor + math.ceil(floor / 10)):
         match (level + random.randint(-1, 1)) % 3:
             case 0:
                 enemy.level.increase_max_hp(base_hp // 5, log=False)
             case 1:
-                enemy.level.increase_defense(Range(1, 1 + (random.random() > 1 / 5)), log=False)
+                enemy.level.increase_defense(Range(2, 2 + (random.random() > 1 / 3)), log=False)
             case 2:
-                enemy.level.increase_power(Range(1, 1 + (random.random() > 1 / 4)), log=False)
+                enemy.level.increase_power(Range(2, 2 + (random.random() > 1 / 3)), log=False)
 
 
 def troll_level_up(enemy: Actor, floor: int, _):
-    base_hp = enemy.fighter.max_hp
-    for level in range(5, floor + math.ceil(floor / 10)):
+    base_hp = int(enemy.fighter.max_hp)
+    for level in range(4, floor + math.ceil(floor / 10)):
         match (level + random.randint(-1, 1)) % 3:
             case 0:
-                enemy.level.increase_max_hp(base_hp // 5, log=False)
+                enemy.level.increase_max_hp(base_hp // 4, log=False)
             case 1:
                 if random.random() < 1 / 2:
-                    enemy.level.increase_defense(Range(2, 2 + (random.random() > 1 / 4)), log=False)
+                    enemy.level.increase_defense(Range(3, 3 + (random.random() > 1 / 3)), log=False)
                 else:
-                    enemy.level.increase_defense(Range(1, 1 + (random.random() > 1 / 4)), log=False)
+                    enemy.level.increase_defense(Range(2, 2 + (random.random() > 1 / 3)), log=False)
             case 2:
                 if random.random() < 1 / 2:
-                    enemy.level.increase_power(Range(2, 2 + (random.random() > 1 / 4)), log=False)
+                    enemy.level.increase_power(Range(3, 3 + (random.random() > 1 / 3)), log=False)
                 else:
-                    enemy.level.increase_power(Range(1, 1 + (random.random() > 1 / 4)), log=False)
+                    enemy.level.increase_power(Range(2, 2 + (random.random() > 1 / 3)), log=False)
 
 
 orc = EnemyFactory(

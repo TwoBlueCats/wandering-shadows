@@ -147,7 +147,8 @@ class EventHandler(BaseEventHandler):
         """
         if action is None:
             return False
-        affected = action.entity.apply()
+        affected = action.entity.apply_effects()
+
         try:
             action.perform()
         except exceptions.Impossible as exc:
@@ -679,7 +680,7 @@ class MainGameEventHandler(EventHandler):
 
         if key in MOVE_KEYS:
             dx, dy = MOVE_KEYS[key]
-            action = DirectedActionDispatcher(player, dx, dy)
+            action = DirectedActionDispatcher(player, dx, dy, modifier)
         elif key in WAIT_KEYS:
             action = WaitAction(player)
         elif key == tcod.event.K_ESCAPE:

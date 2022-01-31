@@ -33,6 +33,15 @@ class Range:
             self._stop += other
         return self
 
+    def __mul__(self, other: float) -> Range:
+        if not isinstance(other, float):
+            raise NotImplemented
+        assert other >= 1
+        value = Range(self._value, self._stop)
+        value._value = int(value._value * other)
+        value._stop = int(value._stop * other)
+        return value
+
     def __str__(self):
         if self._value == self._stop:
             return str(self._value)

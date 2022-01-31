@@ -24,7 +24,7 @@ class Damage:
         self.value = value
         self.type = type
 
-    def attack(self, defense: Defense) -> int:
+    def attack(self, defense: Defense) -> float:
         return defense.decrease(self.value, self.type)
 
     def __str__(self) -> str:
@@ -43,7 +43,7 @@ class Defense:
     def __init__(self, defense: dict[DamageType, tuple[Range, Range]] = None):
         self.defense: dict[DamageType, tuple[Range, Range]] = defense or {}
 
-    def decrease(self, value: Union[Damage, Range, int], key: DamageType = DamageType.PHYSICAL) -> int:
+    def decrease(self, value: Union[Damage, Range, int], key: DamageType = DamageType.PHYSICAL) -> float:
         if isinstance(value, Damage):
             key = value.type
             value = value.value
@@ -51,7 +51,7 @@ class Defense:
             return int(value)
         value = int(value)
         defense = self.defense.get(key) or [0, 0]
-        return round(value * 100 / (100 - int(defense[DefenseType.PERCENT])) - int(defense[DefenseType.ABSOLUT]))
+        return round(value * (100 - int(defense[DefenseType.PERCENT])) / 100 - int(defense[DefenseType.ABSOLUT]), 1)
 
     def __add__(self, other: Union[Defense, tuple[Range, Range], Range, int]) -> Defense:
         defense = copy.deepcopy(self)

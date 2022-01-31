@@ -26,15 +26,17 @@ class Engine:
         self.message_log = MessageLog()
         self.mouse_location = (0, 0)
         self.player = player
+        self.turn = 0
 
     def handle_enemy_turns(self) -> None:
         for entity in set(self.game_map.actors) - {self.player}:
-            entity.apply()
+            entity.apply_effects()
             if entity.ai:
                 try:
                     entity.ai.perform()
                 except exceptions.Impossible:
                     pass
+        self.turn += 1
 
     def update_fov(self) -> None:
         """Recompute the visible area based on the players point of view."""

@@ -52,7 +52,7 @@ class Level(BaseComponent):
     def increase_level(self) -> None:
         self.current_level += 1
 
-    def increase_max_hp(self, amount: int = 20, log: bool = True) -> None:
+    def increase_max_hp(self, amount: float = 20, log: bool = True) -> None:
         self.parent.fighter.max_hp += amount
         self.parent.fighter.hp += amount
 
@@ -61,7 +61,7 @@ class Level(BaseComponent):
 
         self.increase_level()
 
-    def increase_max_mp(self, amount: int = 20, log: bool = True) -> None:
+    def increase_max_mp(self, amount: float = 20, log: bool = True) -> None:
         self.parent.fighter.max_mp += amount
         self.parent.fighter.restore_mana(amount)
         if log:

@@ -85,7 +85,7 @@ class DamageEffect(Effect):
             engine.message_log.add_message(
                 f"{self.parent.name} takes {self.damage.type.name.lower()} damage {value}"
             )
-        return actor.fighter.take_damage(value)
+        return bool(actor.fighter.take_damage(value))
 
     def describe(self) -> list[str]:
         return [f"{self.damage.type.name.title()} damage: {self.damage.value}"]

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from typing import TYPE_CHECKING, Union
 
 import color
@@ -28,13 +29,21 @@ class Fighter(BaseComponent):
             self.base_defense: Defense = Defense({DamageType.DEFAULT: (Range(), defense or Range())})
         self.base_power = power
 
+        self.hp_decrease_turn = 0
+        self.mana_decrease_turn = 0
+
+        self.mana_regen_percent = 0.5
+        self.mana_regen_turns = 10
+
     @property
     def hp(self) -> int:
-        return self._hp
+        return math.ceil(self._hp)
 
     @hp.setter
-    def hp(self, value: int) -> None:
-        self._hp = max(0, min(value, self.max_hp))
+    def hp(self, value: float) -> None:
+        if value < self._hp:
+            self.hp_decrease_turn = self.engine.turn
+        self._hp = max(0., min(value, self.max_hp))
         if self._hp == 0 and self.parent.ai:
             self.die()
 
@@ -62,18 +71,19 @@ class Fighter(BaseComponent):
 
     @property
     def mp(self) -> int:
-        return self._mp
+        return math.ceil(self._mp)
 
     def use_mana(self, value: int) -> int:
         if self._mp >= value:
             self._mp -= value
+            self.mana_decrease_turn = self.engine.turn
             return value
         return 0
 
-    def restore_mana(self, value: int) -> int:
-        before = self.mp
-        self._mp = max(0, min(before + value, self.max_mp))
-        return self.mp - before
+    def restore_mana(self, value: float) -> float:
+        before = self._mp
+        self._mp = max(0., min(before + value, self.max_mp))
+        return self._mp - before
 
     def die(self) -> None:
         if self.engine.player is self.parent:
@@ -93,21 +103,23 @@ class Fighter(BaseComponent):
 
         self.engine.message_log.add_message(death_message, death_message_color)
 
-    def heal(self, amount: int) -> int:
+    def heal(self, amount: float) -> float:
         if not self.parent.is_alive:
             return 0
-        before = self.hp
+        before = self._hp
         self.hp += amount
         return self.hp - before
 
-    def take_damage(self, amount: int) -> bool:
+    def take_damage(self, amount: float) -> float:
         if self.parent.is_alive:
+            before = self.hp
             self.hp -= amount
-            return True
-        return False
+            return before - self.hp
+        return 0
 
     def description(self) -> list[str]:
         return [f"HP: {self.hp}",
+                f"MP: {self.mp}",
                 f"Power: {self.power}",
                 f"Defense:",
                 *self.defense.describe()

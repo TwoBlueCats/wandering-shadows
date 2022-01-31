@@ -3,6 +3,8 @@ from __future__ import annotations
 import random
 from typing import Optional, TYPE_CHECKING
 
+import tcod.event
+
 import color
 import exceptions
 
@@ -160,11 +162,12 @@ class TakeStairsAction(Action):
 
 
 class ActionWithDirection(Action):
-    def __init__(self, entity: Actor, dx: int, dy: int):
+    def __init__(self, entity: Actor, dx: int, dy: int, modifier: tcod.event.Modifier = tcod.event.Modifier.NONE):
         super().__init__(entity)
 
         self.dx = dx
         self.dy = dy
+        self.modifier = modifier
 
     @property
     def dest_xy(self) -> tuple[int, int]:
@@ -194,7 +197,10 @@ class MeleeAction(ActionWithDirection):
         target = self.target_actor
         if target is None:
             raise exceptions.Impossible("Nothing to attack.")
-        damage = target.fighter.defense.decrease(self.entity.fighter.power)
+        power = self.entity.fighter.power
+        if self.modifier:
+            power *= 1.5
+        damage = target.fighter.defense.decrease(power)
 
         attack_desc = f"{self.entity.name.capitalize()} attacks {target.name}"
         if self.entity is self.engine.player:
@@ -203,10 +209,10 @@ class MeleeAction(ActionWithDirection):
             attack_color = color.enemy_atk
 
         if damage > 0:
+            real = target.fighter.take_damage(damage)
             self.engine.message_log.add_message(
-                f"{attack_desc} for {damage} hit points.", attack_color
+                f"{attack_desc} for {round(real)} hit points.", attack_color
             )
-            target.fighter.take_damage(damage)
         else:
             self.engine.message_log.add_message(
                 f"{attack_desc} but does no damage.", attack_color
@@ -237,6 +243,15 @@ class MovementAction(ActionWithDirection):
 
 class DirectedActionDispatcher(ActionWithDirection):
     def perform(self) -> None:
+        if self.modifier & self.modifier.SHIFT:  # forced move
+            dest = (self.entity.x + self.dx * 2, self.entity.y + self.dy * 2)
+            if not self.engine.game_map.get_actor_at_location(*dest):
+                return MovementAction(self.entity, self.dx * 2, self.dy * 2, self.modifier).perform()
+            else:
+                return MovementAction(self.entity, self.dx, self.dy).perform()
+        if self.modifier & self.modifier.CTRL:  # forced melee attack
+            return MeleeAction(self.entity, self.dx, self.dy, self.modifier).perform()
+        # base move/melee attack
         if self.target_actor:
             return MeleeAction(self.entity, self.dx, self.dy).perform()
         else:

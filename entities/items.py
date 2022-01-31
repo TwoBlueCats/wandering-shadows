@@ -47,6 +47,7 @@ universal_potion = ItemFactory(
         effects.RestoreManaEffect(amount=20),
     ])),
     fit_to_level=potion_level_up,
+    base_floor=6,
 )
 regeneration_potion = ItemFactory(
     char="&",
