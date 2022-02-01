@@ -6,6 +6,7 @@ from itertools import chain
 from typing import Optional, Type, TypeVar, TYPE_CHECKING, Union
 
 from render_order import RenderOrder
+from components.params import ActorStats
 
 if TYPE_CHECKING:
     from components.ai import BaseAI
@@ -16,6 +17,7 @@ if TYPE_CHECKING:
     from components.inventory import Inventory
     from components.level import Level
     from components.effects import Effect
+    from components.params import FighterParams
     from game_map import GameMap
 
 T = TypeVar("T", bound="Entity")
@@ -114,6 +116,7 @@ class Actor(Entity):
             inventory: Inventory,
             level: Level,
             dungeon_level: int = -1,
+            stats: Optional[ActorStats] = None
     ):
         super().__init__(
             x=x,
@@ -141,6 +144,7 @@ class Actor(Entity):
         self.level.parent = self
 
         self.effects: list[Effect] = []
+        self.stats = stats or ActorStats()
 
     @property
     def is_alive(self) -> bool:
@@ -175,10 +179,22 @@ class Actor(Entity):
         for effect in self.effects:
             effect.apply(self, False)
 
-        if self.parent.engine.turn - self.fighter.mana_decrease_turn > self.fighter.mana_regen_turns:
-            self.fighter.restore_mana(round(self.fighter.max_mp * self.fighter.mana_regen_percent / 100, 2))
+        if self.parent.engine.turn - self.in_rest > self.params.mana_regen_turns:
+            self.fighter.restore_mana(round(self.fighter.max_mp * self.params.mana_regen_percent / 100, 2))
+
+        if self.parent.engine.turn - self.in_rest > self.params.energy_regen_turns:
+            add = round(self.fighter.max_ep * self.params.energy_regen_percent / 100, 2)
+            self.fighter.restore_energy(add)
 
         return was
+
+    @property
+    def in_rest(self) -> int:
+        return max(self.fighter.energy_decrease_turn, self.fighter.mana_decrease_turn, self.fighter.hp_decrease_turn)
+
+    @property
+    def params(self) -> FighterParams:
+        return self.stats.params
 
 
 class Item(Entity):

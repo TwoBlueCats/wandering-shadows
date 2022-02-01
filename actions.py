@@ -134,7 +134,7 @@ class TakeStairsAction(Action):
             amount = min(self.engine.game_world.current_floor * 15, int(player.fighter.max_hp * 0.5))
             if (heal := player.fighter.heal(amount)) > 0:
                 self.engine.message_log.add_message(
-                    f"You take a moment to rest, and recover your strength {heal}.",
+                    f"You take a moment to rest, and recover your health {int(heal)}.",
                     color.descend,
                 )
             else:
@@ -199,7 +199,7 @@ class MeleeAction(ActionWithDirection):
             raise exceptions.Impossible("Nothing to attack.")
         power = self.entity.fighter.power
         if self.modifier:
-            power *= 1.5
+            power *= self.entity.params.forced_attack_mult
         damage = target.fighter.defense.decrease(power)
 
         attack_desc = f"{self.entity.name.capitalize()} attacks {target.name}"
@@ -217,6 +217,8 @@ class MeleeAction(ActionWithDirection):
             self.engine.message_log.add_message(
                 f"{attack_desc} but does no damage.", attack_color
             )
+        if self.modifier & self.modifier.CTRL:  # forced melee attack
+            self.entity.fighter.ep -= self.entity.params.forced_attack_energy
 
     @staticmethod
     def action_name():
@@ -235,6 +237,8 @@ class MovementAction(ActionWithDirection):
             raise exceptions.Impossible("That way is blocked.")
 
         self.entity.move(self.dx, self.dy)
+        if self.modifier & self.modifier.SHIFT:  # forced move
+            self.entity.fighter.ep -= self.entity.params.forced_move_energy
 
     @staticmethod
     def action_name():
@@ -245,11 +249,13 @@ class DirectedActionDispatcher(ActionWithDirection):
     def perform(self) -> None:
         if self.modifier & self.modifier.SHIFT:  # forced move
             dest = (self.entity.x + self.dx * 2, self.entity.y + self.dy * 2)
-            if not self.engine.game_map.get_actor_at_location(*dest):
+            if (self.entity.fighter.ep >= self.entity.params.forced_move_energy
+                    and not self.engine.game_map.get_actor_at_location(*dest)):
                 return MovementAction(self.entity, self.dx * 2, self.dy * 2, self.modifier).perform()
             else:
                 return MovementAction(self.entity, self.dx, self.dy).perform()
-        if self.modifier & self.modifier.CTRL:  # forced melee attack
+        if (self.entity.fighter.ep >= self.entity.params.forced_move_energy
+                and self.modifier & self.modifier.CTRL):  # forced melee attack
             return MeleeAction(self.entity, self.dx, self.dy, self.modifier).perform()
         # base move/melee attack
         if self.target_actor:

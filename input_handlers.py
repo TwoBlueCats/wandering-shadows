@@ -136,6 +136,8 @@ class EventHandler(BaseEventHandler):
                 # The player was killed sometime during or after the action.
                 return GameOverEventHandler(self.engine)
             elif self.engine.player.level.requires_level_up:
+                self.engine.player.fighter.stats.remains += 1
+                self.engine.player.level.increase_level()
                 return LevelUpEventHandler(self.engine)
             return MainGameEventHandler(self.engine)  # Return to the main handler.
         return self
@@ -218,8 +220,14 @@ class CharacterScreenEventHandler(AskUserEventHandler):
             "Defense:",
             *player.fighter.defense.describe(),
             "",
-            f"Inventory: {len(player.inventory.items)}/{player.inventory.capacity}"
+            f"Inventory: {len(player.inventory.items)}/{player.inventory.capacity}",
+            "",
+            "Base characteristics:",
+            *player.fighter.stats.describe(),
         ]
+        if player.fighter.stats.remains != 0:
+            messages.append("")
+            messages.append(f"Points remain: {player.fighter.stats.remains}")
         if player.effects:
             messages.extend(("", "Effects:"))
             messages.extend(chain.from_iterable(effect.describe() for effect in player.effects))
@@ -362,7 +370,7 @@ class LevelUpEventHandler(AskUserEventHandler):
             x=x,
             y=y,
             width=Config.overlay_width,
-            height=9,
+            height=11,
             title=self.TITLE,
             clear=True,
             fg=(255, 255, 255),
@@ -372,42 +380,22 @@ class LevelUpEventHandler(AskUserEventHandler):
         console.print(x=x + 1, y=y + 1, string="Congratulations! You level up!")
         console.print(x=x + 1, y=y + 2, string="Select an attribute to increase.")
 
-        console.print(
-            x=x + 1,
-            y=y + 4,
-            string=f"a) Constitution (+20 HP, from {self.engine.player.fighter.max_hp})",
-        )
-        console.print(
-            x=x + 1,
-            y=y + 5,
-            string=f"b) Intelligence (+20 MP, from {self.engine.player.fighter.max_mp})",
-        )
-        console.print(
-            x=x + 1,
-            y=y + 6,
-            string=f"c) Strength (+1 attack, from {self.engine.player.fighter.base_power})",
-        )
-        console.print(
-            x=x + 1,
-            y=y + 7,
-            string=f"d) Agility (+1 defense, from {self.engine.player.fighter.base_defense[DamageType.DEFAULT][1]})",
-        )
+        for index, stat in enumerate(self.engine.player.stats.base_stats_names):
+            key = chr(ord("a") + index)
+            console.print(
+                x=x + 1,
+                y=y + 4 + index,
+                string=f"{key}) {stat.title()} (from {self.engine.player.fighter.stats.get_stat(stat)})",
+            )
 
     def ev_keydown(self, event: tcod.event.KeyDown) -> Optional[ActionOrHandler]:
         player = self.engine.player
         key = event.sym
         index = key - tcod.event.K_a
 
-        if 0 <= index <= 3:
-            if index == 0:
-                player.level.increase_max_hp()
-            elif index == 1:
-                player.level.increase_max_mp()
-            elif index == 2:
-                player.level.increase_power()
-            else:
-                player.level.increase_defense()
-        else:
+        if 0 <= index <= len(player.fighter.stats.base_stats_names):
+            player.level.increase_stat(player.fighter.stats.base_stats_names[index])
+        elif event.sym != tcod.event.K_ESCAPE:
             self.engine.message_log.add_message("Invalid entry.", color.invalid)
             return None
 
@@ -720,7 +708,13 @@ class MainGameEventHandler(EventHandler):
                 return item.equippable is not None
 
             return FilteredActivateHandler(self.engine, "Equipment items list", filter)
-        # No valid key was pressed
+        elif key == tcod.event.K_x:
+            if self.engine.player.fighter.stats.remains > 0:
+                return LevelUpEventHandler(self.engine)
+            else:
+                self.engine.message_log.add_message("No points to use.", color.invalid)
+                return
+                # No valid key was pressed
         return action
 
 

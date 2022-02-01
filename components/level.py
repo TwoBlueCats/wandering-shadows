@@ -22,7 +22,8 @@ class Level(BaseComponent):
             xp_given: int = 0,
     ):
         self.current_level = current_level
-        self.current_xp = current_xp
+        # self.current_xp = current_xp
+        self.current_xp = 1000
         self.level_up_base = level_up_base
         self.level_up_factor = level_up_factor
         self.xp_given = xp_given
@@ -52,33 +53,9 @@ class Level(BaseComponent):
     def increase_level(self) -> None:
         self.current_level += 1
 
-    def increase_max_hp(self, amount: float = 20, log: bool = True) -> None:
-        self.parent.fighter.max_hp += amount
-        self.parent.fighter.hp += amount
-
+    def increase_stat(self, stat_name: str, log: bool = True) -> None:
+        self.parent.fighter.stats.increase_stat(stat_name)
+        self.parent.fighter.stats.used += 1
+        self.parent.fighter.stats.remains += -1
         if log:
-            self.engine.message_log.add_message("Your health improves!")
-
-        self.increase_level()
-
-    def increase_max_mp(self, amount: float = 20, log: bool = True) -> None:
-        self.parent.fighter.max_mp += amount
-        self.parent.fighter.restore_mana(amount)
-        if log:
-            self.engine.message_log.add_message("Your magic improves!")
-
-        self.increase_level()
-
-    def increase_power(self, amount: Union[Range, int] = None, log: bool = True) -> None:
-        self.parent.fighter.base_power += amount if amount is not None else Range(1)
-        if log:
-            self.engine.message_log.add_message("You feel stronger!")
-
-        self.increase_level()
-
-    def increase_defense(self, amount: Union[Range, int] = None, log: bool = True) -> None:
-        self.parent.fighter.base_defense += amount if amount is not None else Range(1)
-        if log:
-            self.engine.message_log.add_message("Your movements are getting swifter!")
-
-        self.increase_level()
+            self.engine.message_log.add_message(f"Your {stat_name} improves!")

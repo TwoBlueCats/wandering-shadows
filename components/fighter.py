@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Union
 
 import color
 from components.base_component import BaseComponent
+from components.params import ActorStats
 from render_order import RenderOrder
 from ranged_value import Range
 from combat import Damage, DamageType, Defense, DefenseType
@@ -16,24 +17,39 @@ if TYPE_CHECKING:
 class Fighter(BaseComponent):
     parent: Actor
 
-    def __init__(self, hp: int, defense: Union[Defense, Range], power: Range, mp: int = 0):
-        self.max_hp = hp
-        self._hp = hp
+    def __init__(self, stats: ActorStats, defense: Union[Defense, Range] = None, power: Range = None):
+        self.stats = stats
 
-        self.max_mp = mp
-        self._mp = mp
+        self.fixed_defense = defense or Defense()
+        self.fixed_power = power or Range()
 
-        if isinstance(defense, Defense):
-            self.base_defense: Defense = defense
-        else:
-            self.base_defense: Defense = Defense({DamageType.DEFAULT: (Range(), defense or Range())})
-        self.base_power = power
+        self._hp = self.max_hp
+        self._mp = self.max_mp
+        self._ep = self.max_ep
 
         self.hp_decrease_turn = 0
         self.mana_decrease_turn = 0
+        self.energy_decrease_turn = 0
 
-        self.mana_regen_percent = 0.5
-        self.mana_regen_turns = 10
+    @property
+    def max_hp(self) -> int:
+        return self.stats.params.max_hp
+
+    @property
+    def max_mp(self) -> int:
+        return self.stats.params.max_mp
+
+    @property
+    def max_ep(self) -> int:
+        return self.stats.params.max_ep
+
+    @property
+    def base_power(self) -> Range:
+        return self.stats.params.power + self.fixed_power
+
+    @property
+    def base_defense(self) -> Defense:
+        return self.stats.params.defense + self.fixed_defense
 
     @property
     def hp(self) -> int:
@@ -79,6 +95,21 @@ class Fighter(BaseComponent):
             self.mana_decrease_turn = self.engine.turn
             return value
         return 0
+
+    @property
+    def ep(self) -> int:
+        return int(self._ep)
+
+    @ep.setter
+    def ep(self, value: int) -> None:
+        if value < self._ep:
+            self.energy_decrease_turn = self.engine.turn
+        self._ep = max(0., min(value, self.max_ep))
+
+    def restore_energy(self, value) -> float:
+        before = self._ep
+        self._ep = max(0., min(before + value, self.max_ep))
+        return self._ep - before
 
     def restore_mana(self, value: float) -> float:
         before = self._mp

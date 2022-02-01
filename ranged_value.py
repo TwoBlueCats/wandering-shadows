@@ -34,7 +34,7 @@ class Range:
         return self
 
     def __mul__(self, other: float) -> Range:
-        if not isinstance(other, float):
+        if not isinstance(other, (float, int)):
             raise NotImplemented
         assert other >= 1
         value = Range(self._value, self._stop)

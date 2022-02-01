@@ -83,12 +83,23 @@ class Engine:
         )
         render_utils.render_bar(
             console=console,
+            current_value=self.player.fighter.ep,
+            maximum_value=self.player.fighter.max_ep,
+            bg=color.mp_empty,
+            fg=color.mp_filled,
+            x=Config.data_left_x,
+            y=Config.data_location_y + 2,
+            total_width=Config.bar_width,
+            text=f"EP: {self.player.fighter.ep}/{self.player.fighter.max_ep}"
+        )
+        render_utils.render_bar(
+            console=console,
             current_value=self.player.level.current_xp,
             maximum_value=self.player.level.experience_to_next_level,
             bg=color.xp_empty,
             fg=color.xp_filled,
             x=Config.data_left_x,
-            y=Config.data_location_y + 2,
+            y=Config.data_location_y + 3,
             total_width=Config.bar_width,
             text=f"XP: {self.player.level.current_xp}/{self.player.level.experience_to_next_level}"
         )

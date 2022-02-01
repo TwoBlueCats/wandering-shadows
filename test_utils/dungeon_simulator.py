@@ -1,11 +1,13 @@
-class A:
-    def use(self):
-        del self
+from itertools import product
 
+values = sorted(["health", "mana", "power", "defense", "energy"])
 
-values = [A(), A()]
-print(values)
-values[0].use()
-print(values)
-values[0].use()
-print(values)
+printed = False
+for f, s in product(values, values):
+    if s < f:
+        if not printed:
+            print()
+            printed = True
+        continue
+    print(f, s, sep="\t")
+    printed = False
