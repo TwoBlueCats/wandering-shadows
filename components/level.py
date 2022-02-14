@@ -22,8 +22,7 @@ class Level(BaseComponent):
             xp_given: int = 0,
     ):
         self.current_level = current_level
-        # self.current_xp = current_xp
-        self.current_xp = 1000
+        self.current_xp = current_xp
         self.level_up_base = level_up_base
         self.level_up_factor = level_up_factor
         self.xp_given = xp_given

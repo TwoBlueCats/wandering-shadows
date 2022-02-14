@@ -15,12 +15,11 @@ player = Actor(
     ai_cls=BaseAI,
     equipment=Equipment(),
     fighter=Fighter(ActorStats(
-        strength=2,
-
         hp_base=80,
         mp_base=80,
         ep_base=80
-    )),
+    ),
+        power=Range(1)),
     inventory=Inventory(capacity=26),
     level=Level(level_up_base=200),
 )

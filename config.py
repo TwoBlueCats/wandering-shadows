@@ -1,11 +1,11 @@
 class Config:
     # --- screen
-    screen_width = 80
-    screen_height = 50
+    screen_width = 120
+    screen_height = 70
 
     # --- map
     map_width = screen_width
-    map_height = 43
+    map_height = 60
 
     # --- UI
     bar_width = 20
