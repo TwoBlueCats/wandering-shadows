@@ -545,6 +545,7 @@ class EntityDescriptionHandler(AskUserEventHandler):
         return MainGameEventHandler(self.engine)
 
 
+# TODO: fix issue with select point location on big maps (relative vs abs coords)
 class SelectIndexHandler(AskUserEventHandler):
     """Handles asking the user for an index on the map."""
 

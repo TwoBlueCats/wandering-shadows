@@ -31,11 +31,8 @@ def new_game() -> Engine:
 
     engine.game_world = GameWorld(
         engine=engine,
-        max_rooms=Config.max_rooms,
-        room_min_size=Config.room_min_size,
-        room_max_size=Config.room_max_size,
-        map_width=Config.map_width,
-        map_height=Config.map_height,
+        big_map=Config.big_map,
+        little_map=Config.little_map,
     )
     engine.game_world.generate_floor()
     engine.update_fov()
