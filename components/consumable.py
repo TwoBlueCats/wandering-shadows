@@ -112,7 +112,7 @@ class Consumable(BaseComponent):
     def _get_selected_target(self, consumer: Actor, xy: tuple[int, int]) -> list[Actor]:
         if not self.engine.game_map.visible[xy]:
             raise Impossible("You cannot target an area that you cannot see.")
-        target = self.engine.game_map.get_actor_at_location(*xy)
+        target = self.engine.game_map.get_actor_at_location_abs(*xy)
         return [target] if target else []
 
     def _get_ranged_targets(self, consumer: Actor, xy: tuple[int, int]) -> list[Actor]:

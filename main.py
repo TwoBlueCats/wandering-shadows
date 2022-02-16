@@ -1,4 +1,5 @@
 import traceback
+import sys
 
 import tcod
 
@@ -22,6 +23,9 @@ def main() -> None:
     )
 
     handler: input_handlers.BaseEventHandler = setup_game.MainMenu()
+
+    if "debug" in sys.argv:
+        Config.DEBUG = True
 
     with tcod.context.new_terminal(
             Config.screen_width,

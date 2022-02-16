@@ -1,16 +1,22 @@
 class Config:
     # --- screen
     screen_width = 120
-    screen_height = 70
+    screen_height = 80
+
+    # --- screen map
+    sample_map_x = 0
+    sample_map_y = 0
+    sample_map_width = screen_width
+    sample_map_height = 60
 
     # --- map
-    map_width = screen_width
-    map_height = 60
+    map_width = sample_map_width * 2
+    map_height = sample_map_height * 2
 
     # --- UI
     bar_width = 20
 
-    names_location_y = map_height + 1
+    names_location_y = sample_map_height + sample_map_y + 1
 
     data_location_y = names_location_y + 1
     data_left_x = 0
@@ -40,6 +46,8 @@ class Config:
     @classmethod
     def to_dict(cls) -> dict:
         return {x: y for (x, y) in cls.__dict__.items() if x[:2] != "__" and x != "to_dict"}
+
+    DEBUG = False
 
 
 if __name__ == '__main__':

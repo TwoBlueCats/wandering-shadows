@@ -82,7 +82,7 @@ class ItemAction(Action):
     @property
     def target_actor(self) -> Optional[Actor]:
         """Return the actor at this action's destination."""
-        return self.engine.game_map.get_actor_at_location(*self.target_xy)
+        return self.engine.game_map.get_actor_at_location_abs(*self.target_xy)
 
     def perform(self) -> None:
         """Invoke the item's ability, this action will be given to provide context."""
@@ -189,7 +189,7 @@ class ActionWithDirection(Action):
     @property
     def target_actor(self) -> Optional[Actor]:
         """Return the actor at this actions destination."""
-        return self.engine.game_map.get_actor_at_location(*self.dest_xy)
+        return self.engine.game_map.get_actor_at_location_abs(*self.dest_xy)
 
 
 class MeleeAction(ActionWithDirection):
@@ -250,7 +250,7 @@ class DirectedActionDispatcher(ActionWithDirection):
         if self.modifier & self.modifier.SHIFT:  # forced move
             dest = (self.entity.x + self.dx * 2, self.entity.y + self.dy * 2)
             if (self.entity.fighter.ep >= self.entity.params.forced_move_energy
-                    and not self.engine.game_map.get_actor_at_location(*dest)):
+                    and not self.engine.game_map.get_actor_at_location_abs(*dest)):
                 return MovementAction(self.entity, self.dx * 2, self.dy * 2, self.modifier).perform()
             else:
                 return MovementAction(self.entity, self.dx, self.dy).perform()

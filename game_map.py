@@ -5,6 +5,8 @@ from typing import Iterable, Iterator, Optional, TYPE_CHECKING
 import numpy as np  # type: ignore
 from tcod.console import Console
 
+import color
+from config import Config
 from entity import Actor, Item
 import tile_types
 
@@ -27,9 +29,31 @@ class GameMap:
 
         self.downstairs_location = (0, 0)
 
+        self.block_top = 0
+        self.block_left = 0
+
     def in_bounds(self, x: int, y: int) -> bool:
         """Return True if x and y are inside of the bounds of this map."""
         return 0 <= x < self.width and 0 <= y < self.height
+
+    def shown(self, x: int, y: int) -> bool:
+        width, height = Config.sample_map_width, Config.sample_map_height
+        return self.block_left <= x < self.block_left + width and self.block_top <= y < self.block_top + height
+
+    def update_block_locs(self):
+        mm_clip = lambda v, l, u: max(l, min(u, v))
+
+        width, height = Config.sample_map_width, Config.sample_map_height
+
+        x, y = self.engine.player.position
+        # in bound x-axis
+        if not (self.block_left + width // 4 <= x < self.block_left + width // 4 * 3):
+            left = x - width // 2
+            self.block_left = mm_clip(left, 0, self.width - width)
+        # in bound y-axis
+        if not (self.block_top + height // 4 <= y < self.block_top + height // 4 * 3):
+            top = y - height // 2
+            self.block_top = mm_clip(top, 0, self.height - height)
 
     @property
     def game_map(self) -> GameMap:
@@ -55,12 +79,17 @@ class GameMap:
 
         return None
 
-    def get_actor_at_location(self, x: int, y: int) -> Optional[Actor]:
+    def get_actor_at_location_abs(self, x: int, y: int) -> Optional[Actor]:
         for actor in self.actors:
             if actor.x == x and actor.y == y:
                 return actor
-
         return None
+
+    def get_location_abs(self, x: int, y: int) -> tuple[int, int]:
+        return x + self.block_left, y + self.block_top
+
+    def get_actor_at_shown_location(self, x: int, y: int) -> Optional[Actor]:
+        return self.get_actor_at_location_abs(*self.get_location_abs(x, y))
 
     def render(self, console: Console) -> None:
         """
@@ -70,19 +99,29 @@ class GameMap:
         If it isn't, but it's in the "explored" array, then draw it with the "dark" colors.
         Otherwise, the default is "DARKNESS".
         """
-        console.tiles_rgb[0:self.width, 0:self.height] = np.select(
+        self.update_block_locs()
+        m_x, m_y = Config.sample_map_x, Config.sample_map_y
+        width, height = Config.sample_map_width, Config.sample_map_height
+        console.tiles_rgb[m_x:m_x + width, m_y:m_y + height] = np.select(
             condlist=[self.visible, self.explored],
             choicelist=[self.tiles["light"], self.tiles["dark"]],
             default=tile_types.DARKNESS
-        )
+        )[self.block_left:self.block_left + width, self.block_top:self.block_top + height]
+
+        if Config.DEBUG:
+            console.draw_frame(x=m_x + width // 4, y=0, width=1, height=height, fg=color.red, clear=False)
+            console.draw_frame(x=m_x + width // 4 * 3, y=0, width=1, height=height, fg=color.red, clear=False)
+            console.draw_frame(x=0, y=m_y + height // 4, width=width, height=1, fg=color.red, clear=False)
+            console.draw_frame(x=0, y=m_y + height // 4 * 3, width=width, height=1, fg=color.red, clear=False)
 
         entities_sorted_for_rendering = sorted(
-            self.entities, key=lambda x: x.render_order.value
+            self.entities, key=lambda v: v.render_order.value
         )
 
         for entity in entities_sorted_for_rendering:
             if self.visible[entity.x, entity.y]:
-                console.print(x=entity.x, y=entity.y, string=entity.char, fg=entity.color)
+                console.print(x=entity.x - self.block_left, y=entity.y - self.block_top, string=entity.char,
+                              fg=entity.color)
 
 
 class GameWorld:
