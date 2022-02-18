@@ -17,6 +17,7 @@ from actions import (
     TakeStairsAction,
     EquipAction,
     ImpossibleAction,
+    PlaceTorchAction,
 )
 import color
 import exceptions
@@ -545,7 +546,6 @@ class EntityDescriptionHandler(AskUserEventHandler):
         return MainGameEventHandler(self.engine)
 
 
-# TODO: fix issue with select point location on big maps (relative vs abs coords)
 class SelectIndexHandler(AskUserEventHandler):
     """Handles asking the user for an index on the map."""
 
@@ -553,14 +553,14 @@ class SelectIndexHandler(AskUserEventHandler):
         """Sets the cursor to the player when this handler is constructed."""
         super().__init__(engine)
         player = self.engine.player
-        engine.mouse_location = player.x, player.y
+        engine.mouse_location = engine.game_map.get_location_rel(player.x, player.y)
 
     def on_render(self, console: tcod.Console) -> None:
         """Highlight the tile under the cursor."""
         super().on_render(console)
         x, y = self.engine.mouse_location
-        console.tiles_rgb["bg"][x, y] = color.white
-        console.tiles_rgb["fg"][x, y] = color.black
+        console.tiles_rgb["bg"][x + Config.sample_map_x, y + Config.sample_map_y] = color.white
+        console.tiles_rgb["fg"][x + Config.sample_map_x, y + Config.sample_map_y] = color.black
 
     def ev_keydown(self, event: tcod.event.KeyDown) -> Optional[ActionOrHandler]:
         """Check for key movement or confirmation keys."""
@@ -579,8 +579,8 @@ class SelectIndexHandler(AskUserEventHandler):
             x += dx * modifier
             y += dy * modifier
             # Clamp the cursor index to the map size.
-            x = max(0, min(x, self.engine.game_map.width - 1))
-            y = max(0, min(y, self.engine.game_map.height - 1))
+            x = max(Config.sample_map_x, min(x, Config.sample_map_x + Config.sample_map_width - 1))
+            y = max(Config.sample_map_y, min(y, Config.sample_map_y + Config.sample_map_height - 1))
             self.engine.mouse_location = x, y
             return None
         elif key in CONFIRM_KEYS:
@@ -604,9 +604,10 @@ class LookHandler(SelectIndexHandler):
 
     def on_index_selected(self, x: int, y: int) -> Optional[ActionOrHandler]:
         """Return to main handler."""
-        for item in self.engine.game_map.entities:
-            if item.x == x and item.y == y:
-                return EntityDescriptionHandler(self.engine, item, LookHandler)
+        game_map = self.engine.game_map
+        entity = list(game_map.get_entities_at_location(*game_map.get_location_abs(x, y)))
+        if len(entity) > 0:
+            return EntityDescriptionHandler(self.engine, entity[0], LookHandler)
         return MainGameEventHandler(self.engine)
 
 
@@ -716,7 +717,10 @@ class MainGameEventHandler(EventHandler):
             else:
                 self.engine.message_log.add_message("No points to use.", color.invalid)
                 return
-                # No valid key was pressed
+        elif key == tcod.event.K_t:
+            return PlaceTorchAction(player)
+
+        # No valid key was pressed
         return action
 
 

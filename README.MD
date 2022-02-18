@@ -17,6 +17,10 @@ You can move around the floor using arrows or numpad (with "`yubn`" keys for dia
 or "`z`" keys). Character location is displayed by "`@`" symbol, other symbols are items and enemies. Symbol "`>`" is
 staircase to the next floor, you can use it as soon as you find it (press Shift and period keys).
 
+There is floor minimap in right bottom corner, it shows explored and visible part of floor in same manner as main map.
+To mark some rooms or tunnels you can put where torches using "`t`" key and collect them back, you have unlimited number
+of torches in inventory. It can be useful on big maps to mark staircase or rooms with potions/scrolls.
+
 To pick item from floor use "`g`" key (or use "`f`" to use item from floor). To use item from inventory you need to open
 inventory list ("`i`" key, or "`p`", "`m`", "`q`" as shortcuts for potions, magic items and equipment) and when
 press "`a-z`" to choose item. You can also inspect items characteristics by pressing "`e`" and choosing item.

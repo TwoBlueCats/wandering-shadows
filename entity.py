@@ -5,6 +5,8 @@ import math
 from itertools import chain
 from typing import Optional, Type, TypeVar, TYPE_CHECKING, Union
 
+import color
+from config import Config
 from render_order import RenderOrder
 from components.params import ActorStats
 
@@ -243,3 +245,12 @@ class Item(Entity):
             messages.extend(self.consumable.description())
 
         return messages
+
+
+class Torch(Entity):
+    def __init__(self, x=0, y=0, r=Config.fov_radius):
+        super().__init__(x=x, y=y, char="!", color=color.red, name="Torch", render_order=RenderOrder.CORPSE)
+        self.radius = r
+
+    def description(self) -> list[str]:
+        return ["Torch", f"Radius: {self.radius}"]

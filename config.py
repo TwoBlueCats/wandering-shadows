@@ -61,6 +61,7 @@ class Config:
 
     # --- game params
     fov_radius = 8
+    torch_radius = 6
     save_name = "savegame.sav"
 
     @classmethod

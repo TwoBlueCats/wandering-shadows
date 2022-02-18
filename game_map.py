@@ -4,10 +4,11 @@ from typing import Iterable, Iterator, Optional, TYPE_CHECKING
 
 import numpy as np  # type: ignore
 from tcod.console import Console
+from tcod.map import compute_fov
 
 import color
 from config import Config, MapConfig
-from entity import Actor, Item
+from entity import Actor, Item, Torch
 import tile_types
 
 if TYPE_CHECKING:
@@ -49,7 +50,7 @@ class GameMap:
         """Return True if x and y are inside of the bounds of this map."""
         return 0 <= x < self.width and 0 <= y < self.height
 
-    def shown(self, x: int, y: int) -> bool:
+    def is_shown(self, x: int, y: int) -> bool:
         width, height = Config.sample_map_width, Config.sample_map_height
         return self.block_left <= x < self.block_left + width and self.block_top <= y < self.block_top + height
 
@@ -85,6 +86,11 @@ class GameMap:
     def items(self) -> Iterator[Item]:
         yield from (entity for entity in self.entities if isinstance(entity, Item))
 
+    def get_entities_at_location(self, loc_x: int, loc_y: int) -> Iterator[Entity]:
+        for entity in self.entities:
+            if entity.x == loc_x and entity.y == loc_y:
+                yield entity
+
     def get_blocking_entity_at_location(self, location_x: int, location_y: int) -> Optional[Entity]:
         for entity in self.entities:
             if entity.blocks_movement and entity.x == location_x and entity.y == location_y:
@@ -101,8 +107,31 @@ class GameMap:
     def get_location_abs(self, x: int, y: int) -> tuple[int, int]:
         return x + self.block_left, y + self.block_top
 
+    def get_location_rel(self, x: int, y: int) -> tuple[int, int]:
+        return x - self.block_left, y - self.block_top
+
     def get_actor_at_shown_location(self, x: int, y: int) -> Optional[Actor]:
         return self.get_actor_at_location_abs(*self.get_location_abs(x, y))
+
+    def update_fov(self):
+        self.visible[:] = compute_fov(
+            self.tiles["transparent"],
+            (self.engine.player.x, self.engine.player.y),
+            radius=Config.fov_radius,
+        )
+        self.explored |= self.visible
+
+        torches = np.full((self.width, self.height), fill_value=False, order="F")
+        for entity in self.entities:
+            if not isinstance(entity, Torch):
+                continue
+            torch_fov = compute_fov(self.tiles["transparent"], entity.position, radius=entity.radius)
+            if not self.explored[entity.position]:
+                torch_fov &= self.explored
+            torches |= torch_fov
+        self.visible |= torches
+        # If a tile is "visible" it should be added to "explored".
+        self.explored |= self.visible
 
     def render(self, console: Console) -> None:
         """

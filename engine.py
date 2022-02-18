@@ -5,7 +5,6 @@ import pickle
 from typing import TYPE_CHECKING
 
 from tcod.console import Console
-from tcod.map import compute_fov
 
 import color
 from config import Config
@@ -40,13 +39,7 @@ class Engine:
 
     def update_fov(self) -> None:
         """Recompute the visible area based on the players point of view."""
-        self.game_map.visible[:] = compute_fov(
-            self.game_map.tiles["transparent"],
-            (self.player.x, self.player.y),
-            radius=Config.fov_radius,
-        )
-        # If a tile is "visible" it should be added to "explored".
-        self.game_map.explored |= self.game_map.visible
+        self.game_map.update_fov()
 
     def render(self, console: Console) -> None:
         self.game_map.render(console)
@@ -66,7 +59,7 @@ class Engine:
             bg=color.hp_empty,
             fg=color.hp_filled,
             x=Config.data_left_x,
-            y=Config.data_location_y,
+            y=Config.data_location_y + 1,
             total_width=Config.bar_width,
             text=f"HP: {self.player.fighter.hp}/{self.player.fighter.max_hp}"
         )
@@ -77,7 +70,7 @@ class Engine:
             bg=color.mp_empty,
             fg=color.mp_filled,
             x=Config.data_left_x,
-            y=Config.data_location_y + 1,
+            y=Config.data_location_y + 2,
             total_width=Config.bar_width,
             text=f"MP: {self.player.fighter.mp}/{self.player.fighter.max_mp}"
         )
@@ -88,7 +81,7 @@ class Engine:
             bg=color.mp_empty,
             fg=color.mp_filled,
             x=Config.data_left_x,
-            y=Config.data_location_y + 2,
+            y=Config.data_location_y + 3,
             total_width=Config.bar_width,
             text=f"EP: {self.player.fighter.ep}/{self.player.fighter.max_ep}"
         )
@@ -99,7 +92,7 @@ class Engine:
             bg=color.xp_empty,
             fg=color.xp_filled,
             x=Config.data_left_x,
-            y=Config.data_location_y + 3,
+            y=Config.data_location_y + 4,
             total_width=Config.bar_width,
             text=f"XP: {self.player.level.current_xp}/{self.player.level.experience_to_next_level}"
         )

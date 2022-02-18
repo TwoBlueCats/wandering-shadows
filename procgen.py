@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import random
+from itertools import product
 from typing import Iterator, TYPE_CHECKING
 
 import tcod
@@ -8,6 +9,7 @@ import tcod
 import entities.enemies
 import entities.equipment
 import entities.items
+from config import Config
 from game_map import GameMap
 import tile_types
 
@@ -178,12 +180,19 @@ def place_entities(room: RectangularRoom, dungeon: GameMap, floor_number: int) -
     )
 
     for factory in monsters + items:
-        x = random.randint(room.x1 + 1, room.x2 - 1)
-        y = random.randint(room.y1 + 1, room.y2 - 1)
-
-        if not any(entity_.x == x and entity_.y == y for entity_ in dungeon.entities):
+        tries = 0
+        while tries < 10:
+            x = random.randint(room.x1 + 1, room.x2 - 1)
+            y = random.randint(room.y1 + 1, room.y2 - 1)
+            if dungeon.tiles[x, y] != tile_types.floor:
+                tries += 1
+                continue
+            if any(entity_.x == x and entity_.y == y for entity_ in dungeon.entities):
+                tries += 1
+                continue
             entity = factory.construct(floor_number)
             entity.place(x, y, dungeon)
+            break
 
 
 def generate_dungeon(
@@ -201,42 +210,59 @@ def generate_dungeon(
     rooms: list[RectangularRoom] = []
 
     for r in range(max_rooms):
-        room_width = random.randint(room_min_size, room_max_size)
-        room_height = random.randint(room_min_size, room_max_size)
+        # plus one for real size
+        room_width = random.randint(room_min_size, room_max_size) + 1
+        room_height = random.randint(room_min_size, room_max_size) + 1
 
         x = random.randint(0, dungeon.width - room_width - 1)
         y = random.randint(0, dungeon.height - room_height - 1)
 
         # "RectangularRoom" class makes rectangles easier to work with
-        new_room = RectangularRoom(x, y, room_width, room_height)
+        room = RectangularRoom(x, y, room_width, room_height)
 
         # Run through the other rooms and see if they intersect with this one.
-        if any(new_room.intersects(other_room) for other_room in rooms):
+        if any(room.intersects(other_room) for other_room in rooms):
             continue  # This room intersects, so go to the next attempt.
         # If there are no intersections then the room is valid.
 
         # Dig out this rooms inner area.
-        dungeon.tiles[new_room.inner] = tile_types.floor
+        dungeon.tiles[room.inner] = tile_types.floor
+        # Place columns in room
+        for x, y in product(range(room.x1 + 3, room.x2 - 1, 4), range(room.y1 + 3, room.y2 - 1, 4)):
+            dungeon.tiles[x, y] = tile_types.wall
 
         if len(rooms) == 0:
             # The first room, where the player starts.
-            player.place(*new_room.center, dungeon)
+            p_x, p_y = room.center
+            if dungeon.tiles[room.center] != tile_types.floor:
+                p_x, p_y = p_x + 1, p_y + 1
+
+            player.place(p_x, p_y, dungeon)
         else:  # All rooms after the first.
             # Dig out a tunnel between this room and the previous one.
-            for x, y in tunnel_between(rooms[-1].center, new_room.center):
+            for x, y in tunnel_between(rooms[-1].center, room.center):
                 dungeon.tiles[x, y] = tile_types.floor
 
-            place_entities(new_room, dungeon, engine.game_world.current_floor)
+            place_entities(room, dungeon, engine.game_world.current_floor)
 
         # Finally, append the new room to the list.
-        rooms.append(new_room)
+        rooms.append(room)
+
+    # replace columns in room (because of tunnels)
+    for room in rooms:
+        for x, y in product(range(room.x1 + 3, room.x2 - 1, 4), range(room.y1 + 3, room.y2 - 1, 4)):
+            dungeon.tiles[x, y] = tile_types.wall
 
     farthest = player.position
     for room in rooms:
         if player.distance(*room.center) > player.distance(*farthest):
             farthest = room.center
 
-    dungeon.tiles[farthest] = tile_types.down_stairs
-    dungeon.downstairs_location = farthest
+    s_x, s_y = farthest
+    if dungeon.tiles[farthest] != tile_types.floor:
+        s_x, s_y = s_x + 1, s_y + 1
+
+    dungeon.tiles[s_x, s_y] = tile_types.down_stairs
+    dungeon.downstairs_location = s_x, s_y
 
     return dungeon

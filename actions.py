@@ -7,6 +7,8 @@ import tcod.event
 
 import color
 import exceptions
+from config import Config
+from entity import Torch
 
 if TYPE_CHECKING:
     from engine import Engine
@@ -275,3 +277,17 @@ class ImpossibleAction(Action):
     @staticmethod
     def action_name():
         return "ImpossibleAction"
+
+
+class PlaceTorchAction(Action):
+    def perform(self) -> None:
+        for entity in self.engine.game_map.get_entities_at_location(*self.entity.position):
+            if isinstance(entity, Torch):
+                self.engine.game_map.entities.remove(entity)
+                return
+        torch = Torch(r=Config.torch_radius)
+        torch.place(self.entity.x, self.entity.y, self.engine.game_map)
+
+    @staticmethod
+    def action_name():
+        return "PlaceTorch"
