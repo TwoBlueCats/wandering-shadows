@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 import os
 from itertools import chain
 from typing import Optional, Type, TYPE_CHECKING, Callable, Union
@@ -69,6 +70,8 @@ CONFIRM_KEYS = {
     tcod.event.K_RETURN,
     tcod.event.K_KP_ENTER,
 }
+
+SLOT_KEYS = set(tcod.event.K_0 + i for i in range(1, 10))
 
 ActionOrHandler = Union[Action, "BaseEventHandler"]
 """An event handler return value which can trigger an action or switch active handlers.
@@ -412,6 +415,18 @@ class LevelUpEventHandler(AskUserEventHandler):
         return None
 
 
+def use_selected_item(handler, item: Item) -> Optional[ActionOrHandler]:
+    """Return the action for the selected item."""
+    if item is None:
+        return ImpossibleAction(handler.engine.player, "No item selected")
+    if item.consumable:
+        return item.consumable.get_action(handler.engine.player)
+    elif item.equippable:
+        return EquipAction(handler.engine.player, item)
+    else:
+        return None
+
+
 class FilteredActivateHandler(AskUserEventHandler):
     TITLE = "<missing title>"
 
@@ -421,6 +436,8 @@ class FilteredActivateHandler(AskUserEventHandler):
         self.filter = filter
         if title is not None:
             self.TITLE = title
+        self.page = 0
+        self.line = None
 
     def on_render(self, console: tcod.Console) -> None:
         super().on_render(console)
@@ -431,9 +448,9 @@ class FilteredActivateHandler(AskUserEventHandler):
 
         self._filtered = list(filter(self.filter, self.engine.player.inventory.items))
 
-        height = 2 + len(self._filtered)
-        if height <= 3:
-            height = 3
+        height = 5 + len(self._filtered)
+        if height <= 5:
+            height = 5
 
         console.draw_frame(
             x=x,
@@ -446,16 +463,58 @@ class FilteredActivateHandler(AskUserEventHandler):
             bg=color.black,
         )
 
+        console.print(x + 1, y + 1, f"Page: {self.page + 1}/{max(1, math.ceil(len(self._filtered) / 26))}")
         if len(self._filtered) > 0:
-            render_utils.render_items_list(console, self._filtered, self.engine.player.equipment, x, y)
+            render_utils.render_items_list(
+                console,
+                self._filtered[self.page * 26: (self.page + 1) * 26],
+                self.engine.player.equipment,
+                x, y + 2,
+                line=self.line
+            )
         else:
-            console.print(x + 1, y + 1, "(Empty)")
+            console.print(x + 1, y + 3, "(Empty)")
 
     def ev_keydown(self, event: tcod.event.KeyDown) -> Optional[ActionOrHandler]:
         key = event.sym
         index = key - tcod.event.K_a
 
+        if key == tcod.event.K_LEFT:
+            self.page = max(0, self.page - 1)
+            self.line = None
+            return
+        if key == tcod.event.K_RIGHT:
+            max_page = max(1, math.ceil(len(self._filtered) / 26)) - 1
+            self.page = min(max_page, self.page + 1)
+            self.line = None
+            return
+        if key == tcod.event.K_DOWN:
+            self.line = self.line if self.line is not None else -1
+            self.line = min(len(self._filtered) - self.page * 26 - 1, self.line + 1)
+            return
+        if key == tcod.event.K_UP:
+            self.line = self.line if self.line is not None else -1
+            self.line = max(0, self.line - 1)
+            return
+
+        if key in CONFIRM_KEYS:
+            if self.line is None:
+                self.engine.message_log.add_message("Invalid entry.", color.invalid)
+                return None
+            return self.on_item_selected(self._filtered[self.line + self.page * 26])
+
+        if key in SLOT_KEYS:
+            place = key - tcod.event.K_1
+            val = None
+            item = self._filtered[self.line + self.page * 26]
+            if item in self.engine.player.inventory.slots:
+                val = self.engine.player.inventory.slots.index(item)
+                self.engine.player.inventory.slots[val] = None
+            if place != val:
+                self.engine.player.inventory.slots[place] = item
+
         if 0 <= index <= 26:
+            index += self.page * 26
             selected_item: Optional[Item] = None
             if index < len(self._filtered):
                 selected_item = self._filtered[index]
@@ -466,13 +525,7 @@ class FilteredActivateHandler(AskUserEventHandler):
         return super().ev_keydown(event)
 
     def on_item_selected(self, item: Item) -> Optional[ActionOrHandler]:
-        """Return the action for the selected item."""
-        if item.consumable:
-            return item.consumable.get_action(self.engine.player)
-        elif item.equippable:
-            return EquipAction(self.engine.player, item)
-        else:
-            return None
+        return use_selected_item(self, item)
 
 
 class InventoryActivateHandler(FilteredActivateHandler):
@@ -672,6 +725,8 @@ class MainGameEventHandler(EventHandler):
         if key in MOVE_KEYS:
             dx, dy = MOVE_KEYS[key]
             action = DirectedActionDispatcher(player, dx, dy, modifier)
+        elif key in SLOT_KEYS:
+            return use_selected_item(self, self.engine.player.inventory.slots[key - tcod.event.K_1])
         elif key in WAIT_KEYS:
             action = WaitAction(player)
         elif key == tcod.event.K_ESCAPE:

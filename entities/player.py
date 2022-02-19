@@ -20,7 +20,7 @@ player = Actor(
         ep_base=80
     ),
         power=Range(1)),
-    inventory=Inventory(capacity=26),
+    inventory=Inventory(capacity=78, slots=9),
     level=Level(level_up_base=200),
 )
 # hp=100, defense=Defense({DamageType.PHYSICAL: (Range(0), Range(1))}), power=Range(2), mp=100

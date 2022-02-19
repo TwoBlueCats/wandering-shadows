@@ -136,8 +136,9 @@ class Consumable(BaseComponent):
         """Remove the consumed item from its containing inventory."""
         entity = self.parent
         inventory = entity.parent
+        print(self, self.parent, self.parent.parent)
         if isinstance(inventory, components.inventory.Inventory) and entity in inventory.items:
-            inventory.items.remove(entity)
+            inventory.remove(entity)
 
     def description(self) -> list[str]:
         return self.effect.describe()

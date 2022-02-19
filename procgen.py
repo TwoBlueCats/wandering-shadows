@@ -181,10 +181,10 @@ def place_entities(room: RectangularRoom, dungeon: GameMap, floor_number: int) -
 
     for factory in monsters + items:
         tries = 0
-        while tries < 10:
+        while tries < 20:
             x = random.randint(room.x1 + 1, room.x2 - 1)
             y = random.randint(room.y1 + 1, room.y2 - 1)
-            if dungeon.tiles[x, y] != tile_types.floor:
+            if not dungeon.tiles[x, y] == tile_types.floor:
                 tries += 1
                 continue
             if any(entity_.x == x and entity_.y == y for entity_ in dungeon.entities):

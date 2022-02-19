@@ -108,6 +108,15 @@ class Engine:
             y=Config.names_location_y,
             engine=self,
         )
+        console.print(Config.data_left_x, Config.data_location_y + 6, "Quick inventory slots")
+        render_utils.render_items_list(
+            console,
+            self.player.inventory.slots, self.player.equipment,
+            x=Config.data_left_x,
+            y=Config.data_location_y + 6,
+            start="1",
+            width=Config.bar_width
+        )
 
     def save_as(self, filename: str) -> None:
         """Save this Engine instance as a compressed file."""

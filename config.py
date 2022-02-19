@@ -39,7 +39,7 @@ class Config:
     big_floor = 10
 
     # --- UI
-    bar_width = 20
+    bar_width = 30
 
     names_location_y = sample_map_height + sample_map_y + 1
 

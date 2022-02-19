@@ -271,8 +271,12 @@ class DirectedActionDispatcher(ActionWithDirection):
 
 
 class ImpossibleAction(Action):
+    def __init__(self, entity: Actor, text: str = "It is impossible actions"):
+        super().__init__(entity)
+        self.text = text
+
     def perform(self) -> None:
-        raise exceptions.Impossible("It is impossible actions")
+        raise exceptions.Impossible(self.text)
 
     @staticmethod
     def action_name():
