@@ -70,16 +70,23 @@ def get_render_x_pos(engine: Engine) -> int:
         return Config.overlay_left_x
 
 
-def render_items_list(console: Console, items, equipment, x, y, start="a", line=None, width=None):
+def render_items_list(console: Console, items, equipment, x, y, start="a", line=None, width=None, slots=None):
+    if slots is None:
+        slots = []
     for i, item in enumerate(items):
         item_key = chr(ord(start) + i)
         is_equipped = equipment.item_is_equipped(item)
+        slot = None
+        if item in slots:
+            slot = slots.index(item)
 
         item_string = f"({item_key}) {item.name if item is not None else ''}"
 
         if is_equipped:
             item_string = f"{item_string} (E)"
-        item_string = item_string[:None]
+        if slot is not None:
+            item_string = f"{item_string} (slot {slot + 1})"
+        item_string = item_string[:width]
         fg = color.white
         bg = color.black
         if i == line:

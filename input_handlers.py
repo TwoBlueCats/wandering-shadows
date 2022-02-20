@@ -448,7 +448,7 @@ class FilteredActivateHandler(AskUserEventHandler):
 
         self._filtered = list(filter(self.filter, self.engine.player.inventory.items))
 
-        height = 5 + len(self._filtered)
+        height = 5 + len(self._filtered[self.page * 26: (self.page + 1) * 26])
         if height <= 5:
             height = 5
 
@@ -470,7 +470,8 @@ class FilteredActivateHandler(AskUserEventHandler):
                 self._filtered[self.page * 26: (self.page + 1) * 26],
                 self.engine.player.equipment,
                 x, y + 2,
-                line=self.line
+                line=self.line,
+                slots=self.engine.player.inventory.slots,
             )
         else:
             console.print(x + 1, y + 3, "(Empty)")
@@ -493,7 +494,7 @@ class FilteredActivateHandler(AskUserEventHandler):
             self.line = min(len(self._filtered) - self.page * 26 - 1, self.line + 1)
             return
         if key == tcod.event.K_UP:
-            self.line = self.line if self.line is not None else -1
+            self.line = self.line if self.line is not None else min(len(self._filtered) - self.page * 26, 26)
             self.line = max(0, self.line - 1)
             return
 
@@ -504,6 +505,8 @@ class FilteredActivateHandler(AskUserEventHandler):
             return self.on_item_selected(self._filtered[self.line + self.page * 26])
 
         if key in SLOT_KEYS:
+            if self.line is None:
+                return
             place = key - tcod.event.K_1
             val = None
             item = self._filtered[self.line + self.page * 26]

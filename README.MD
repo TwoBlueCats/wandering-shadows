@@ -1,6 +1,6 @@
 # Wandering shadows
 
-![demo](docs/images/floor.png "floor demo")
+![demo](docs/images/demo.png "floor demo")
 
 "Wandering shadows" is а roguelike game written in Python (3.10 version) and tcod library.
 
@@ -21,11 +21,22 @@ There is floor minimap in right bottom corner, it shows explored and visible par
 To mark some rooms or tunnels you can put where torches using "`t`" key and collect them back, you have unlimited number
 of torches in inventory. It can be useful on big maps to mark staircase or rooms with potions/scrolls.
 
+![floor](docs/images/floor.png "floor")
+
 To pick item from floor use "`g`" key (or use "`f`" to use item from floor). To use item from inventory you need to open
 inventory list ("`i`" key, or "`p`", "`m`", "`q`" as shortcuts for potions, magic items and equipment) and when
-press "`a-z`" to choose item. You can also inspect items characteristics by pressing "`e`" and choosing item.
+press "`a-z`" to choose item. You can also inspect items characteristics by pressing "`e`" and choosing item. At
+inventory screen you can use left/right arrows to navigate over inventory pages. One page currently contain 26 items at
+max.
 
-Inventory has limited size (you can see it in character info screen) so you need to drop items by pressing "`d`" and
+You can add and use any item to the one of fast slots, they are printed in left bottom corner. To use item from slot
+press "`1-9`". To add item, firstly, you need to select it using up/down arrows at any inventory screen, current
+selected item is highlighted. Then press "`1-9`"
+key to assign chosen item to slot. If it is already assigned to this slot, it will remove assignment, and reassign if
+another slot. Each slot contain only one item at once, so after using "Health potion" you need to assign new one to this
+slot.
+
+Inventory has limited size (you can see it in character info screen) so you may need to drop items by pressing "`d`" and
 choosing item.
 
 ![inventory](docs/images/inventory.png "inventory")
